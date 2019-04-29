@@ -2,16 +2,14 @@ package edu.gmu.cs675.server.model;
 
 import java.io.Serializable;
 
-public class keyValuePersistence implements Serializable {
+public class KeyValuePersistence implements Serializable {
+    private static final long serialVersionUID = -249196446739301055L;
     private String key;
     private String value;
 
-    public keyValuePersistence(String key, String value) {
+    public KeyValuePersistence(String key, String value) {
         this.key = key;
         this.value = value;
-    }
-
-    public keyValuePersistence() {
     }
 
     public String getValue() {

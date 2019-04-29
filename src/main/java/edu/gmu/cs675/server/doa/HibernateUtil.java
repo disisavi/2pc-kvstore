@@ -6,8 +6,8 @@ import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistry;
 
 public class HibernateUtil {
-    private static final SessionFactory sessionFactory = buildSessionFactory();
     private static ServiceRegistry serviceRegistry;
+    private static final SessionFactory sessionFactory = buildSessionFactory();
 
     private static SessionFactory buildSessionFactory() {
         Configuration configuration = new Configuration();
@@ -22,7 +22,7 @@ public class HibernateUtil {
         return sessionFactory;
     }
 
-    public void close() throws Exception {
+    public static void close() throws Exception {
         if (serviceRegistry != null) {
             StandardServiceRegistryBuilder.destroy(serviceRegistry);
 
