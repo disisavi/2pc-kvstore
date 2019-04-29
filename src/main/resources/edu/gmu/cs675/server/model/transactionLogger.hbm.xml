@@ -1,0 +1,12 @@
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="edu.gmu.cs675.server.model">
+    <class name="TransactionLogger" table="store">
+        <id name="transactionId" type="java.lang.Integer"/>
+        <property name="Key" type="string" length="100" not-null="false"/>
+        <property name="Value" type="string" length="100" not-null="false"/>
+        <property name="state" type="integer" length="100" not-null="false"/>
+        <property name="stamp" type="java.lang.Long" length="100" not-null="false"/>
+    </class>
+</hibernate-mapping>

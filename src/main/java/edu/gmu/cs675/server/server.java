@@ -15,7 +15,5 @@ public class server {
             logger.error(e);
             logger.error(e.getStackTrace());
         }
-
-
     }
 }
