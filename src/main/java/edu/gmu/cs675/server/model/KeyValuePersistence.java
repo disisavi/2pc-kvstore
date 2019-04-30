@@ -1,6 +1,7 @@
 package edu.gmu.cs675.server.model;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class KeyValuePersistence implements Serializable {
     private static final long serialVersionUID = -249196446739301055L;
@@ -26,6 +27,19 @@ public class KeyValuePersistence implements Serializable {
 
     public void setKey(String key) {
         this.key = key;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof KeyValuePersistence)) return false;
+        KeyValuePersistence that = (KeyValuePersistence) o;
+        return Objects.equals(getKey(), that.getKey());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getKey());
     }
 
 //    TODO

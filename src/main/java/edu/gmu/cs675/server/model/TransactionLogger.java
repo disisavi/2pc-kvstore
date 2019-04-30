@@ -1,6 +1,7 @@
 package edu.gmu.cs675.server.model;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 public class TransactionLogger implements Serializable {
     private static final long serialVersionUID = 7285422351781570L;
@@ -8,6 +9,7 @@ public class TransactionLogger implements Serializable {
     private String Key;
     private String Value;
     private int state;
+
     private Long stamp;
 
     public Long getStamp() {
@@ -49,4 +51,18 @@ public class TransactionLogger implements Serializable {
     public void setTransactionId(Integer transactionId) {
         this.transactionId = transactionId;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TransactionLogger)) return false;
+        TransactionLogger that = (TransactionLogger) o;
+        return getTransactionId().equals(that.getTransactionId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getTransactionId());
+    }
+
 }

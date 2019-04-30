@@ -53,7 +53,7 @@ public class DOA {
             HibernateUtil.close();
         } catch (Exception e) {
             logger.error("Couldn't close the connection as " + e.getMessage());
-            e.printStackTrace();
+            logger.error("StackTrace -- ", e);
         }
     }
 

@@ -2,119 +2,172 @@ package edu.gmu.cs675.server;
 
 import edu.gmu.cs675.server.doa.DOA;
 import edu.gmu.cs675.server.model.KeyValuePersistence;
-import edu.gmu.cs675.shared.KvInterface;
+import edu.gmu.cs675.shared.KvMasterInterface;
+import edu.gmu.cs675.shared.KvReplicaInterface;
+import javassist.NotFoundException;
 import org.apache.log4j.Logger;
 
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.registry.Registry;
-import java.rmi.server.UnicastRemoteObject;
+import java.rmi.server.RemoteServer;
+import java.rmi.server.ServerNotActiveException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
-public class KvStoreMaster implements KvInterface {
+class KvStoreMaster implements KvMasterInterface {
 
-    private InetAddress selfIp;
-    private String hostname;
     private static Logger logger = Logger.getLogger(KvStoreMaster.class);
-    private Map<String, Long> keyLockMap;
-    private DOA dataObjet;
+    Map<String, KvReplicaInterface> clientMap;
+    Map<String, KvClass> kvMap;
+    DOA dataObject;
+    final AtomicInteger ongoingTransactions;
+    ReentrantReadWriteLock transactionClientLock;
 
-    private KvStoreMaster() {
-        try {
-            selfIp = getSelfIP();
-        } catch (SocketException | UnknownHostException e) {
-            logger.error("Couldnt Obtain Self IP as" + e.getMessage());
-            logger.error(e);
-            logger.info("Aborting Mission");
-        }
-        hostname = selfIp.getHostName();
-        keyLockMap = new ConcurrentHashMap<>();
-
-        this.dataObjet = DOA.getDoa();
+    KvStoreMaster() {
+        logger.info("Master initialisation started...");
+        this.clientMap = new ConcurrentHashMap<>();
+        this.kvMap = new ConcurrentHashMap<>();
+        this.ongoingTransactions = new AtomicInteger(0);
+        this.dataObject = DOA.getDoa();
+        this.transactionClientLock = new ReentrantReadWriteLock();
+        logger.info("Master initialisation Successful");
     }
 
-    private InetAddress getSelfIP() throws SocketException, UnknownHostException {
 
-        final DatagramSocket socket = new DatagramSocket();
-        socket.connect(InetAddress.getByName("8.8.8.8"), KvInterface.port);
-        InetAddress ip = InetAddress.getByName(socket.getLocalAddress().getHostAddress());
-
-        return ip;
+    void shutdown() {
+        this.dataObject.shutdown();
     }
 
-    public static void startRMIServer() {
-        KvStoreMaster kvStoreMaster = new KvStoreMaster();
+    @Override
+    public void registerClient(KvReplicaInterface kvClient) throws IllegalArgumentException, RemoteException {
+     /*   TODO
+                1. Check If we need to synchronize indivisual elements elements in concurrentMap
+      */
         try {
-
-            Registry registry;
+            if (this.ongoingTransactions.get() > 0)
+                synchronized (this.ongoingTransactions) {
+                    this.ongoingTransactions.wait();
+                }
+            this.transactionClientLock.readLock().lock();
             try {
-                registry = LocateRegistry.createRegistry(KvInterface.port);
-            } catch (RemoteException e) {
-                logger.info("Unable to create registry.... Checking if registry already exist");
-                registry = LocateRegistry.getRegistry(KvInterface.port);
+                String hostname = RemoteServer.getClientHost();
+                if (this.clientMap.containsKey(hostname)) {
+                    logger.info("The client " + hostname + " is already registered");
+                    logger.info("Throwing exception to the Client");
+                    throw new IllegalArgumentException("Host Already Registered.. Please Deregister and try again.");
+                }
+                this.clientMap.put(hostname, kvClient);
+
+            } catch (ServerNotActiveException e) {
+                logger.error("Cannot get client Hostname.. " + e.getMessage() + " at thread " + Thread.currentThread().getId());
+                logger.error("StackTrace", e);
+            } finally {
+                this.transactionClientLock.readLock().unlock();
             }
-            KvInterface nodeStub = (KvInterface) UnicastRemoteObject.exportObject(kvStoreMaster, KvInterface.port);
-
-            registry.rebind("game", nodeStub);
-            logger.info("KV Store Complete\nserver Name -- " + kvStoreMaster.hostname);
-            logger.info("ip -- " + kvStoreMaster.selfIp.getHostAddress());
-        } catch (RemoteException e) {
-            logger.info("KV Store Startup Failure ...");
-            kvStoreMaster.shutdown(e);
+        } catch (InterruptedException e) {
+            logger.error("Thread interrupted while waiting. Im still not sure why that might be and what actions to take");
+            logger.error(e.getMessage());
+            logger.error("StackTrace", e);
+            throw new RemoteException("Action Not performed");
         }
     }
 
-    private void shutdown(Exception exception) {
-        System.out.println("Shutting down Game RMI server");
-        if (exception != null) {
-            logger.error("The following error lead to the shutdown");
-            logger.error(exception.getMessage());
-            logger.error(exception);
-            exception.printStackTrace();
-        }
+    @Override
+    public void deRegisterClient() throws RemoteException, IllegalArgumentException {
         try {
+            if (this.ongoingTransactions.get() > 0)
+                synchronized (this.ongoingTransactions) {
+                    this.ongoingTransactions.wait();
+                }
+            this.transactionClientLock.readLock().lock();
+            try {
+                String hostname = RemoteServer.getClientHost();
+                if (this.clientMap.containsKey(hostname)) {
+                    this.clientMap.remove(hostname);
+                } else {
+                    throw new IllegalArgumentException("Host Doesnt seem to be initialised. Kindly register the client");
+                }
+            } catch (ServerNotActiveException e) {
+                logger.error("Cannot get client Hostname.. " + e.getMessage() + " at thread " + Thread.currentThread().getId());
+                logger.error("StackTrace", e);
+            } finally {
+                this.transactionClientLock.readLock().unlock();
+            }
+        } catch (InterruptedException e) {
+            logger.error("Thread interrupted while waiting. Im still not sure why that might be and what actions to take");
+            logger.error(e.getMessage());
+            logger.error("StackTrace", e);
+            throw new RemoteException("Action Not performed");
+        }
+    }
 
-            Registry registry = LocateRegistry.getRegistry();
-            registry.unbind(this.hostname);
-            UnicastRemoteObject.unexportObject(this, true);
-            Runtime.getRuntime().gc();
-        } catch (RemoteException | NotBoundException e) {
-            logger.error(e);
-            e.printStackTrace();
+    @Override
+    public Integer getTransactionID() throws RemoteException {
+        return null;
+    }
+
+    @Override
+    public Long getLockForKey(Boolean readWriteFlag, String key, Integer transactionID) throws RemoteException, NotFoundException {
+        return null;
+    }
+
+    @Override
+    public void giveLoclForKey(Boolean readWriteFlag, String key, Integer transactionID) throws RemoteException, NotFoundException {
+
+    }
+
+    @Override
+    public void put(Integer transactionID, String key, String value) throws RemoteException {
+
+    }
+
+    @Override
+    public void delete(Integer transactionID, String key) throws RemoteException {
+
+    }
+
+    @Override
+    public String get(String key) throws RemoteException, NotFoundException {
+        return null;
+    }
+
+    @Override
+    public Map<String, String> getKVStream() throws RemoteException {
+        return null;
+    }
+
+    class KvClass {
+        String key;
+        KeyValuePersistence keyValuePersistence;
+        Boolean readLocked;
+        Boolean writeLock;
+        Boolean dirty;
+        Long lockValue;
+
+
+        KvClass(String key) {
+            this.key = key;
+            this.readLocked = false;
+            this.writeLock = false;
+            this.dirty = false;
         }
 
-        dataObjet.shutdown();
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof KvClass)) return false;
+            KvClass kvClass = (KvClass) o;
+            return Objects.equals(key, kvClass.key);
+        }
 
-        // otherwise we wait 60seconds for references to be removed
-        Runtime.getRuntime().gc();
-        System.exit(-1);
+        @Override
+        public int hashCode() {
+            return Objects.hash(key);
+        }
     }
 
 
-    @Override
-    public void put(String key, String value) throws RemoteException {
-        KeyValuePersistence kv = new KeyValuePersistence(key, value);
-        this.dataObjet.persistNewObject(kv);
-        this.dataObjet.commit();
-    }
-
-    @Override
-    public void delete(String key) {
-        Object object = this.dataObjet.getByKey(KeyValuePersistence.class, key);
-        this.dataObjet.removeObject(object);
-        this.dataObjet.commit();
-
-    }
-
-    @Override
-    public String get(String key) throws RemoteException {
-        return (String) this.dataObjet.getByKey(KeyValuePersistence.class, key);
-    }
 }
