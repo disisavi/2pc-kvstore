@@ -268,7 +268,7 @@
                 <version>3.1.1</version>
                 <executions>
                     <execution>
-                        <id>server</id>
+                        <id>master</id>
                         <phase>package</phase>
                         <goals>
                             <goal>jar</goal>
@@ -284,32 +284,60 @@
                             <classifier>server</classifier>
                             <includes>
                                 <include>**/master/**</include>
+                                <include>**/replica/**</include>
                                 <include>**/shared/**</include>
+                                <include>**/doa/**</include>
                                 <include>*.xml</include>
                                 <include>*.properties</include>
                             </includes>
                         </configuration>
                     </execution>
-                    <!--                                <execution>-->
-                    <!--                                    <id>client</id>-->
-                    <!--                                    <phase>package</phase>-->
-                    <!--                                    <goals>-->
-                    <!--                                        <goal>jar</goal>-->
-                    <!--                                    </goals>-->
-                    <!--                                    <configuration>-->
-                    <!--                                        <classifier>client</classifier>-->
-                    <!--                                        <archive>-->
-                    <!--                                            <manifest>-->
-                    <!--                                                <addClasspath>true</addClasspath>-->
-                    <!--                                                <classpathPrefix>lib/</classpathPrefix>-->
-                    <!--                                                <mainClass>edu.gmu.cs675.client.ClockClient</mainClass>-->
-                    <!--                                            </manifest>-->
-                    <!--                                        </archive>-->
-                    <!--                                        <includes>-->
-                    <!--                                            <include>**/client/*</include>-->
-                    <!--                                        </includes>-->
-                    <!--                                    </configuration>-->
-                    <!--                                </execution>-->
+                    <execution>
+                        <id>server</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <archive>
+                                <manifest>
+                                    <addClasspath>true</addClasspath>
+                                    <classpathPrefix>lib/</classpathPrefix>
+                                    <mainClass>edu.gmu.cs675.replica.ReplicaServer</mainClass>
+                                </manifest>
+                            </archive>
+                            <classifier>replica</classifier>
+                            <includes>
+                                <include>**/replica/**</include>
+                                <include>**/master/**</include>
+                                <include>**/shared/**</include>
+                                <include>**/doa/**</include>
+                                <include>*.xml</include>
+                                <include>*.properties</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>client</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                        <configuration>
+                            <classifier>client</classifier>
+                            <archive>
+                                <manifest>
+                                    <addClasspath>true</addClasspath>
+                                    <classpathPrefix>lib/</classpathPrefix>
+                                    <mainClass>edu.gmu.cs675.client.Client</mainClass>
+                                </manifest>
+                            </archive>
+                            <includes>
+                                <include>**/client/*</include>
+                                <include>**/shared/**</include>
+                            </includes>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>

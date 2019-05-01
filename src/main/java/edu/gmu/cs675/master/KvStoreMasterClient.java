@@ -1,6 +1,7 @@
 package edu.gmu.cs675.master;
 
-import edu.gmu.cs675.master.doa.DOA;
+
+import edu.gmu.cs675.doa.DOA;
 import edu.gmu.cs675.master.model.TransactionLogger;
 import edu.gmu.cs675.shared.KvClientInterface;
 import edu.gmu.cs675.shared.KvMasterReplicaInterface;
@@ -62,6 +63,7 @@ public class KvStoreMasterClient implements KvClientInterface {
             KvMasterReplicaInterface nodeStub = (KvMasterReplicaInterface) UnicastRemoteObject.exportObject(kvStoreMaster, KvMasterReplicaInterface.port);
 //            this.kvMasterReplicaInterface = nodeStub;
             registry.rebind(KvMasterReplicaInterface.name, nodeStub);
+            System.out.println("Binding complete");
         } catch (RemoteException e) {
             System.out.println("KV Coordinator Startup Failure ... Proceeding to shutdown");
             logger.error("KV Store Startup Failure ...");
@@ -138,7 +140,7 @@ public class KvStoreMasterClient implements KvClientInterface {
         return true;
     }
 
-    Boolean putAndConfirmCommit(Integer transactionID, String key, String value) {
+    void putAndConfirmCommit(Integer transactionID, String key, String value) throws NotFoundException, RemoteException {
         this.changeTransactionLoggerState(transactionID, TransactionState.ACTIONCHECK, key, value);
         try {
 
@@ -147,19 +149,19 @@ public class KvStoreMasterClient implements KvClientInterface {
             }
             this.changeTransactionLoggerState(transactionID, TransactionState.COMMIT, key, value);
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
-                if (!entry.getValue().commit(transactionID)) {
-                    return false;
-                }
+                entry.getValue().commit(transactionID);
+
+
             }
         } catch (RemoteException | NotFoundException e) {
             logger.error("stacktrace -- Polling ", e);
-            return false;
+            throw e;
         }
-        return true;
+
     }
 
 
-    Boolean deleteAndConfirmCommit(Integer transactionID, String key, String value) {
+    void deleteAndConfirmCommit(Integer transactionID, String key, String value) throws NotFoundException, RemoteException {
         this.changeTransactionLoggerState(transactionID, TransactionState.ACTIONCHECK, key, value);
         try {
 
@@ -168,40 +170,25 @@ public class KvStoreMasterClient implements KvClientInterface {
             }
             this.changeTransactionLoggerState(transactionID, TransactionState.COMMIT, key, value);
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
-                if (!entry.getValue().commit(transactionID)) {
-                    return false;
-                }
+                entry.getValue().commit(transactionID);
+
             }
         } catch (RemoteException | NotFoundException e) {
             logger.error("stacktrace -- Polling ", e);
-            return false;
+            throw e;
         }
-        return true;
+
     }
 
 
     void sendAbortNotification(Integer transactionID) {
         for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
             try {
-                entry.getValue().abortCommit(transactionID);
+                entry.getValue().abortTransaction(transactionID);
             } catch (RemoteException e) {
                 logger.error("Threw Remote exception. We wont do anything for it", e);
             }
         }
-    }
-
-    Boolean sendCommitNotification(Integer transactionID) {
-        for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
-            try {
-                if (!entry.getValue().commit(transactionID)) {
-                    return false;
-                }
-            } catch (RemoteException e) {
-                logger.error("Threw Remote exception. We wont do anything for it", e);
-                return false;
-            }
-        }
-        return true;
     }
 
 
@@ -223,20 +210,10 @@ public class KvStoreMasterClient implements KvClientInterface {
             if (stamp != 0) {
                 try {
                     if (pollAllReplicas(transactionID, key, value)) {
-                        if (putAndConfirmCommit(transactionID, key, value)) {
-                            if (!sendCommitNotification(transactionID)) {
-                                this.changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value);
-                                sendAbortNotification(transactionID);
-                            } else {
-                                this.changeTransactionLoggerState(transactionID, TransactionState.COMPLETE, key, value);
-                            }
-                        } else {
-                            this.changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value);
-                            sendAbortNotification(transactionID);
-                            throw new IllegalStateException("Replica Not ready to write");
-                        }
+                        putAndConfirmCommit(transactionID, key, value);
                     } else {
                         changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value);
+                        sendAbortNotification(transactionID);
                         throw new IllegalStateException("Replica Couldn't accept a commit write now");
                     }
                 } catch (Exception e) {

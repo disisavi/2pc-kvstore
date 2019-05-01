@@ -22,9 +22,11 @@ public class ReplicaServer {
     KvReplicaInterface kvClientInterface;
     Replica kvStoreMaster;
 
+
     private ReplicaServer() {
         try {
             selfIp = getSelfIP();
+
         } catch (SocketException | UnknownHostException e) {
             logger.error("Couldn't Obtain Self IP as" + e.getMessage());
             logger.error(e);
@@ -61,7 +63,7 @@ public class ReplicaServer {
             System.out.println("ip -- " + selfIp.getHostAddress());
             logger.info("KV Store Complete\nmaster Name -- " + hostname);
             logger.info("ip -- " + selfIp.getHostAddress());
-        } catch (RemoteException e) {
+        } catch (RemoteException | NotBoundException e) {
             System.out.println("KV Store Startup Failure ... Proceeding to shutdown");
             logger.error("KV Store Startup Failure ...");
             shutdown(e);
@@ -102,7 +104,6 @@ public class ReplicaServer {
         boolean runAlways = true;
         this.showAvailableComands();
         while (runAlways) {
-
             String argumet = scanner.nextLine();
             String[] command = argumet.trim().split(" ", 2);
             switch (command[0].toUpperCase()) {

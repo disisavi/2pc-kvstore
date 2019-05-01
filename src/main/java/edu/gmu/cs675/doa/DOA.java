@@ -1,4 +1,4 @@
-package edu.gmu.cs675.master.doa;
+package edu.gmu.cs675.doa;
 
 import org.apache.log4j.Logger;
 import org.hibernate.Session;

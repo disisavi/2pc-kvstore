@@ -1,6 +1,7 @@
 package edu.gmu.cs675.master;
 
-import edu.gmu.cs675.master.doa.DOA;
+
+import edu.gmu.cs675.doa.DOA;
 import edu.gmu.cs675.shared.KvMasterReplicaInterface;
 import edu.gmu.cs675.shared.KvReplicaInterface;
 import org.apache.log4j.Logger;

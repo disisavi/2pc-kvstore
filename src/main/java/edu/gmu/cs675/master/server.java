@@ -57,10 +57,10 @@ public class server {
             }
             KvClientInterface nodeStub = (KvClientInterface) UnicastRemoteObject.exportObject(kvStoreMasterClient, KvStoreMasterClient.port);
             this.kvClientInterface = nodeStub;
-            registry.rebind(KvMasterReplicaInterface.name, nodeStub);
-            System.out.println("KV Store Complete\nmaster Name -- " + hostname);
+            registry.rebind(KvClientInterface.name, nodeStub);
+            System.out.println("KV Store Complete\nmaster Name -- " + KvClientInterface.name);
             System.out.println("ip -- " + selfIp.getHostAddress());
-            logger.info("KV Store Complete\nmaster Name -- " + hostname);
+            logger.info("KV Store Complete\nmaster Name -- " + KvClientInterface.name);
             logger.info("ip -- " + selfIp.getHostAddress());
         } catch (RemoteException e) {
             System.out.println("KV Store Startup Failure ... Proceeding to shutdown");

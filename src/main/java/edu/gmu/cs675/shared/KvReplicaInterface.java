@@ -21,7 +21,7 @@ public interface KvReplicaInterface extends Remote {
 
     void put(Integer transactionID, String key, String value) throws RemoteException, NotFoundException;
 
-    Boolean commit(Integer transactionId) throws RemoteException;
+    void commit(Integer transactionId) throws RemoteException;
 
-    void abortCommit(Integer transactionId) throws RemoteException;
+    void abortTransaction(Integer transactionId) throws RemoteException;
 }

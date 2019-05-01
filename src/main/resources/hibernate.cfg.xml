@@ -17,5 +17,6 @@
 
         <mapping resource="edu/gmu/cs675/replica/model/keyvaluepersistence.hbm.xml"/>
         <mapping resource="edu/gmu/cs675/master/model/transactionLogger.hbm.xml"/>
+        <mapping resource="edu/gmu/cs675/replica/model/transactionLoggerReplica.hbm.xml"/>
     </session-factory>
 </hibernate-configuration>
