@@ -1,4 +1,6 @@
-package edu.gmu.cs675.server.model;
+package edu.gmu.cs675.master.model;
+
+import edu.gmu.cs675.shared.TransactionState;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -10,15 +12,13 @@ public class TransactionLogger implements Serializable {
     private String Value;
     private int state;
 
-    private Long stamp;
 
-    public Long getStamp() {
-        return stamp;
+
+    public TransactionLogger(Integer transactionId) {
+        this.transactionId = transactionId;
+        this.state = TransactionState.START;
     }
 
-    public void setStamp(Long stamp) {
-        this.stamp = stamp;
-    }
 
     public int getState() {
         return state;

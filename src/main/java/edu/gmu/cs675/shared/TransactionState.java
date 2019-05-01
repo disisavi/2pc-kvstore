@@ -1,18 +1,10 @@
 package edu.gmu.cs675.shared;
 
-enum TransactionState {
-    ABORT(-1),
-    START(1),
-    COMPLETE(9);
-
-
-    private final int code;
-
-    TransactionState(int i) {
-        this.code = i;
-    }
-
-    public int getCode() {
-        return code;
-    }
+public interface TransactionState {
+    Integer START = 1;
+    Integer ABORT = -1;
+    Integer POLL = 3;
+    Integer ACTIONCHECK = 4;
+    Integer COMMIT = 5;
+    Integer COMPLETE = 9;
 }

@@ -15,7 +15,7 @@
 
         <property name="hibernate.hbm2ddl.auto">update</property>
 
-        <mapping resource="edu/gmu/cs675/server/model/keyvaluepersistence.hbm.xml"/>
-        <mapping resource="edu/gmu/cs675/server/model/transactionLogger.hbm.xml"/>
+        <mapping resource="edu/gmu/cs675/replica/model/keyvaluepersistence.hbm.xml"/>
+        <mapping resource="edu/gmu/cs675/master/model/transactionLogger.hbm.xml"/>
     </session-factory>
 </hibernate-configuration>

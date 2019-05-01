@@ -1,8 +1,8 @@
 <!DOCTYPE hibernate-mapping PUBLIC
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
-<hibernate-mapping package="edu.gmu.cs675.server.model">
-    <class name="keyValuePersistence" table="store">
+<hibernate-mapping package="edu.gmu.cs675.master.model">
+    <class name="edu.gmu.cs675.replica.model.KeyValuePersistence" table="store">
         <id name="key" type="java.lang.String">
         </id>
         <property name="value" type="string" length="100" not-null="false">

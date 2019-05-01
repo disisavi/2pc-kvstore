@@ -278,12 +278,12 @@
                                 <manifest>
                                     <addClasspath>true</addClasspath>
                                     <classpathPrefix>lib/</classpathPrefix>
-                                    <mainClass>edu.gmu.cs675.server.server</mainClass>
+                                    <mainClass>edu.gmu.cs675.master.server</mainClass>
                                 </manifest>
                             </archive>
                             <classifier>server</classifier>
                             <includes>
-                                <include>**/server/**</include>
+                                <include>**/master/**</include>
                                 <include>**/shared/**</include>
                                 <include>*.xml</include>
                                 <include>*.properties</include>

@@ -1,7 +1,11 @@
-package edu.gmu.cs675.server.doa;
+package edu.gmu.cs675.master.doa;
 
 import org.apache.log4j.Logger;
 import org.hibernate.Session;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public class DOA {
     private static DOA doa;
@@ -36,6 +40,13 @@ public class DOA {
         return object;
     }
 
+    public void updateObject(Object object) {
+        if (!this.session.getTransaction().isActive()) {
+            this.startTrasaction();
+        }
+        this.session.update(object);
+    }
+
     public synchronized void persistNewObject(Object object) {
         if (!this.session.getTransaction().isActive()) {
             this.startTrasaction();
@@ -44,7 +55,21 @@ public class DOA {
     }
 
     public synchronized void removeObject(Object object) {
+        if (!this.session.getTransaction().isActive()) {
+            this.startTrasaction();
+        }
         this.session.delete(object);
+    }
+
+    public Set<Object> getAll(Class classname) {
+        if (!this.session.getTransaction().isActive()) {
+            this.startTrasaction();
+        }
+
+        List objects = this.session.createCriteria(classname).list();
+        return new HashSet<>(objects);
+
+
     }
 
     public void shutdown() {

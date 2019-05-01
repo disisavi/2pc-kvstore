@@ -1,4 +1,4 @@
-package edu.gmu.cs675.server.model;
+package edu.gmu.cs675.replica.model;
 
 import java.io.Serializable;
 import java.util.Objects;
@@ -11,6 +11,9 @@ public class KeyValuePersistence implements Serializable {
     public KeyValuePersistence(String key, String value) {
         this.key = key;
         this.value = value;
+    }
+
+    public KeyValuePersistence() {
     }
 
     public String getValue() {
