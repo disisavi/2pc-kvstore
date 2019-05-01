@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Scanner;
@@ -56,7 +57,7 @@ public class Replica implements KvReplicaInterface {
         System.out.println("Enter the Master server ip ");
         String host = scanner.next();
 
-        Registry gameRegistry = getRegistry(KvMasterReplicaInterface.name, KvMasterReplicaInterface.port);
+        Registry gameRegistry = getRegistry(host, KvMasterReplicaInterface.port);
         KvMasterReplicaInterface kvClientInterface = (KvMasterReplicaInterface) gameRegistry.lookup(KvMasterReplicaInterface.name);
         return kvClientInterface;
     }
@@ -76,7 +77,7 @@ public class Replica implements KvReplicaInterface {
     }
 
     @Override
-    public Map<String, String> getAll() throws RemoteException {
+    public HashMap<String, String> getAll() throws RemoteException {
         return null;
     }
 

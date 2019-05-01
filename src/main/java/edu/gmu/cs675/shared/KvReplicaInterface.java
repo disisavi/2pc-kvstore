@@ -4,7 +4,7 @@ import javassist.NotFoundException;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.Map;
+import java.util.HashMap;
 
 //Master will talk to replica using the following API
 
@@ -15,7 +15,7 @@ public interface KvReplicaInterface extends Remote {
 
     String get(String key) throws RemoteException, NotFoundException;
 
-    Map<String, String> getAll() throws RemoteException;
+    HashMap<String, String> getAll() throws RemoteException;
 
     Boolean readyToCommit(Integer transactionId, String key, String value) throws RemoteException;
 

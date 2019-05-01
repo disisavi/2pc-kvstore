@@ -98,7 +98,7 @@ public class Client {
         System.out.flush();
     }
 
-    public static void main() {
+    public static void main(String[] args) {
         try {
             Client client = new Client();
             client.clearConsole();
