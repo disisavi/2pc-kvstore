@@ -34,7 +34,7 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
     }
 
     @Override
-    public Map<String, String> registerReplica(KvReplicaInterface kvClient) throws IllegalArgumentException, RemoteException {
+    public HashMap<String, String> registerReplica(KvReplicaInterface kvClient) throws IllegalArgumentException, RemoteException {
      /*   TODO
                 1. Check If we need to synchronize indivisual elements elements in concurrentMap
       */
@@ -52,7 +52,7 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
                     logger.info("Throwing exception to the Client");
                     throw new IllegalArgumentException("Host Already Registered.. Please Deregister and try again.");
                 }
-                Map<String, String> value = this.fetchAll();
+                HashMap<String, String> value = this.fetchAll();
                 replicaInterfaceMap.put(hostname, kvClient);
                 return value;
             } catch (ServerNotActiveException e) {
@@ -108,7 +108,7 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
         }
     }
 
-    Map<String, String> fetchAll() throws RemoteException {
+    HashMap<String, String> fetchAll() throws RemoteException {
 
         if (replicaInterfaceMap.size() == 0) {
             return new HashMap<>();

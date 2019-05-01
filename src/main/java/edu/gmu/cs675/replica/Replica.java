@@ -34,7 +34,7 @@ public class Replica implements KvReplicaInterface {
         keyValueMap = new ConcurrentHashMap<>();
         transactionLoggerMap = new ConcurrentHashMap<>();
         masterApi = this.getStub();
-        ConcurrentHashMap<String, String> initStream = (ConcurrentHashMap<String, String>) masterApi.registerReplica(this);
+        HashMap<String, String> initStream = masterApi.registerReplica(this);
         this.persistInit(initStream);
 
     }
