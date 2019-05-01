@@ -28,18 +28,24 @@ public class Replica implements KvReplicaInterface {
     Map<String, KvClass> keyValueMap;
     Map<Integer, TransactionLoggerReplica> transactionLoggerMap;
     KvMasterReplicaInterface masterApi;
+    KvReplicaInterface selfStub;
 
     Replica() throws RemoteException, NotBoundException {
         dataObject = DOA.getDoa();
         keyValueMap = new ConcurrentHashMap<>();
         transactionLoggerMap = new ConcurrentHashMap<>();
         masterApi = this.getStub();
-        HashMap<String, String> initStream = masterApi.registerReplica(this);
-        this.persistInit(initStream);
 
     }
 
-    void persistInit(Map<String, String> initStream) {
+    void persistInit() {
+        HashMap<String, String> initStream = null;
+        try {
+            initStream = masterApi.registerReplica(this.selfStub);
+        } catch (RemoteException e) {
+            e.printStackTrace();
+        }
+
         if (initStream.size() > 0) {
             for (Map.Entry<String, String> entry : initStream.entrySet()) {
                 KeyValuePersistence keyValuePersistence = new KeyValuePersistence(entry.getKey(), entry.getValue());

@@ -111,6 +111,7 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
     HashMap<String, String> fetchAll() throws RemoteException {
 
         if (replicaInterfaceMap.size() == 0) {
+            logger.error("Here we are");
             return new HashMap<>();
         }
 
