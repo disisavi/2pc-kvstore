@@ -67,7 +67,8 @@ public class DOA {
         }
 
         List objects = this.session.createCriteria(classname).list();
-        return new HashSet<>(objects);
+        Set<Object> retrunObjectSet = new HashSet<>(objects);
+        return retrunObjectSet;
 
 
     }

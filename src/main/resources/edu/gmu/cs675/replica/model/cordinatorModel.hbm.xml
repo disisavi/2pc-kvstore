@@ -2,10 +2,10 @@
         "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 <hibernate-mapping package="edu.gmu.cs675.replica.model">
-    <class name="edu.gmu.cs675.replica.model.KeyValuePersistence" table="store">
-        <id name="key" type="java.lang.String">
+    <class name="Cordinators" table="cordinator">
+        <id name="seq" type="java.lang.Integer">
+            <generator class="increment"/>
         </id>
-        <property name="value" type="string" length="100" not-null="false">
-        </property>
+        <property name="IP" type="string" length="100" not-null="true"></property>
     </class>
 </hibernate-mapping>

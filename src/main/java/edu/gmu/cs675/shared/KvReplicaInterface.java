@@ -10,6 +10,7 @@ import java.util.HashMap;
 
 public interface KvReplicaInterface extends Remote {
     int port = 4000;
+    String hostname = "replica";
 
     void delete(Integer transactionID, String key) throws RemoteException, NotFoundException;
 

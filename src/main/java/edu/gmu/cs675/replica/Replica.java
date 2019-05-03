@@ -2,6 +2,7 @@ package edu.gmu.cs675.replica;
 
 
 import edu.gmu.cs675.doa.DOA;
+import edu.gmu.cs675.replica.model.Cordinators;
 import edu.gmu.cs675.replica.model.KeyValuePersistence;
 import edu.gmu.cs675.replica.model.TransactionLoggerReplica;
 import edu.gmu.cs675.shared.KvMasterReplicaInterface;
@@ -13,10 +14,7 @@ import org.apache.log4j.Logger;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.Registry;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Scanner;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static java.rmi.registry.LocateRegistry.getRegistry;
@@ -27,26 +25,42 @@ public class Replica implements KvReplicaInterface {
     DOA dataObject;
     Map<String, KvClass> keyValueMap;
     Map<Integer, TransactionLoggerReplica> transactionLoggerMap;
-    KvMasterReplicaInterface masterApi;
+    List<KvMasterReplicaInterface> masterList;
     KvReplicaInterface selfStub;
 
     Replica() throws RemoteException, NotBoundException {
         dataObject = DOA.getDoa();
         keyValueMap = new ConcurrentHashMap<>();
         transactionLoggerMap = new ConcurrentHashMap<>();
-        masterApi = this.getStub();
+        masterList = this.getStubsList();
 
     }
 
-    void persistInit() {
-        HashMap<String, String> initStream = null;
-        try {
-            initStream = masterApi.registerReplica(this.selfStub);
-        } catch (RemoteException e) {
-            e.printStackTrace();
+    /**
+     * @implNote First, we check if the DB already had a few Key value values. And if it did, we will delete it so that itoesnt mess with the more up to date values later.
+     * Then, we will get the coordinator information from DB. If the replica is being setup for the first time, there wont be any value. In any case. if we are
+     * not able to contact coordinators in DB (maybe thecoordinatorr migrated), the user will then have option to enter ip for the new master
+     * We will, at this point, get the stream of most uptodate keys and values from the Server and persist those values.
+     */
+    void replicaStartup() {
+        Set<Object> keyValuePersistenceSet = dataObject.getAll(KeyValuePersistence.class);
+        if (keyValuePersistenceSet.size() != 0) {
+            for (Object object : keyValuePersistenceSet) {
+                KeyValuePersistence keyValuePersistence = (KeyValuePersistence) object;
+                dataObject.removeObject(keyValuePersistence);
+            }
+            dataObject.commit();
         }
 
-        if (initStream.size() > 0) {
+        HashMap<String, String> initStream = null;
+        try {
+            initStream = masterList.get(0).registerReplica(this.selfStub);
+        } catch (RemoteException e) {
+            logger.error("Unable to get init stream");
+            logger.error("stacktrace ", e);
+        }
+
+        if (null != initStream && initStream.size() > 0) {
             for (Map.Entry<String, String> entry : initStream.entrySet()) {
                 KeyValuePersistence keyValuePersistence = new KeyValuePersistence(entry.getKey(), entry.getValue());
                 KvClass kvClass = new KvClass(entry.getKey());
@@ -58,15 +72,55 @@ public class Replica implements KvReplicaInterface {
 
     }
 
-    KvMasterReplicaInterface getStub() throws RemoteException, NotBoundException {
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("Enter the Master server ip ");
-        String host = scanner.next();
+    List<KvMasterReplicaInterface> getStubsList() throws RemoteException {
+        Set<Object> objectSet = dataObject.getAll(Cordinators.class);
+        List<KvMasterReplicaInterface> replicaInterfaces = new ArrayList<>();
+        try {
+            if (objectSet.size() == 0) {
 
+                replicaInterfaces.add(getStub(false, null));
+            } else {
+                for (Object object : objectSet) {
+                    Cordinators cordinators = (Cordinators) object;
+                    try {
+                        replicaInterfaces.add(getStub(true, cordinators.getIP()));
+                    } catch (RemoteException e) {
+                        logger.error("Unable to contact coordinator");
+                        logger.error("Remote Exception.. ", e);
+                        logger.info("Will now take user input for ip");
+                        System.out.println("Couldn't connect to previously connected Coordinator...");
+                        System.out.println("Lets try with a new coordinator");
+                        replicaInterfaces.add(getStub(false, null));
+                    }
+                }
+            }
+            return replicaInterfaces;
+        } catch (RemoteException | NotBoundException e) {
+            System.out.println("Unable to contact Coordinator with Given Ip");
+            logger.error("Unable to contact Coordinator with Given Ip");
+            logger.error("Stack trace", e);
+            logger.info("Shutting Down");
+            throw new RemoteException(e.getMessage());
+        }
+    }
+
+    KvMasterReplicaInterface getStub(Boolean isIpGiven, String ip) throws RemoteException, NotBoundException {
+        String host;
+        if (isIpGiven) {
+            host = ip;
+        } else {
+            Scanner scanner = new Scanner(System.in);
+            System.out.println("Enter the Master server ip ");
+            host = scanner.next();
+        }
         Registry gameRegistry = getRegistry(host, KvMasterReplicaInterface.port);
         KvMasterReplicaInterface kvClientInterface = (KvMasterReplicaInterface) gameRegistry.lookup(KvMasterReplicaInterface.name);
+        Cordinators cordinators = new Cordinators(host);
+        dataObject.persistNewObject(cordinators);
+        dataObject.commit();
         return kvClientInterface;
     }
+
 
     void shutdown() {
         this.dataObject.shutdown();
@@ -74,19 +128,45 @@ public class Replica implements KvReplicaInterface {
 
     @Override
     public void delete(Integer transactionID, String key) throws RemoteException, NotFoundException {
-
+        transactionLoggerMap.get(transactionID).setKey(key);
+        transactionLoggerMap.get(transactionID).setState(TransactionState.COMMIT);
+        dataObject.updateObject(transactionLoggerMap.get(transactionID));
+        synchronized (this) {
+            if (keyValueMap.containsKey(key)) {
+                KeyValuePersistence keyValuePersistence = keyValueMap.get(key).keyValuePersistence;
+                keyValueMap.remove(key);
+                dataObject.removeObject(keyValuePersistence);
+            } else {
+                throw new NotFoundException("Key Not found");
+            }
+        }
     }
 
     @Override
     public String get(String key) throws RemoteException, NotFoundException {
-        return null;
+        if (keyValueMap.containsKey(key)) {
+            return keyValueMap.get(key).keyValuePersistence.getValue();
+
+        } else throw new NotFoundException("Key not found.");
     }
 
+    /**
+     * @return HashMap<String, String> --> returns all the key value pairs in the replica.
+     * @throws RemoteException
+     */
     @Override
     public HashMap<String, String> getAll() throws RemoteException {
-        return null;
+        HashMap<String, String> returnMap = new HashMap<>();
+        keyValueMap.forEach(((s, kvClass) -> returnMap.put(s, kvClass.keyValuePersistence.getValue())));
+        return returnMap;
     }
 
+    /**
+     * @param transactionId
+     * @param key
+     * @param value
+     * @return Boolean --> Vote true for yes, its ready to commit, or under the current implementation, throw an error if its not able to commit
+     */
     @Override
     public Boolean readyToCommit(Integer transactionId, String key, String value) {
         if (transactionLoggerMap.containsKey(transactionId)) {
@@ -105,6 +185,15 @@ public class Replica implements KvReplicaInterface {
         return true;
     }
 
+
+    /**
+     * @param transactionID
+     * @param key
+     * @param value
+     * @throws RemoteException
+     * @throws NotFoundException The replica, in this and all the other methods, is solely dependent on Coordinator to ensure sequentially. We are, of course right now not worried about multiple coordinator.
+     *                           And hence, we dont maintain any locks here.
+     */
     @Override
     public void put(Integer transactionID, String key, String value) throws RemoteException, NotFoundException {
         transactionLoggerMap.get(transactionID).setKey(key);
@@ -147,8 +236,7 @@ public class Replica implements KvReplicaInterface {
         Boolean readLocked;
         Boolean writeLock;
         Boolean dirty;
-        Long lockValue;
-        Long transactionID;
+
 
         KvClass(String key) {
             this.key = key;
@@ -171,3 +259,6 @@ public class Replica implements KvReplicaInterface {
         }
     }
 }
+
+
+//Write more consistent console messages

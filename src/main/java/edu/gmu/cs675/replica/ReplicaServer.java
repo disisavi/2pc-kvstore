@@ -16,23 +16,21 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.Scanner;
 
 public class ReplicaServer {
-    static Logger logger = Logger.getLogger(edu.gmu.cs675.master.server.class);
+    static Logger logger = Logger.getLogger(ReplicaServer.class);
     InetAddress selfIp;
     String hostname;
     KvReplicaInterface kvClientInterface;
-    Replica kvStoreMaster;
+    Replica replica;
 
 
     private ReplicaServer() {
         try {
             selfIp = getSelfIP();
-
         } catch (SocketException | UnknownHostException e) {
             logger.error("Couldn't Obtain Self IP as" + e.getMessage());
-            logger.error(e);
+            logger.error("stackTrace-- ", e);
             logger.info("Aborting Mission");
         }
-        hostname = selfIp.getHostName();
     }
 
     private InetAddress getSelfIP() throws SocketException, UnknownHostException {
@@ -47,8 +45,8 @@ public class ReplicaServer {
     public void startRMIServer() {
 
         try {
-            Replica kvStoreMasterClient = new Replica();
-
+            Replica replica = new Replica();
+            this.replica = replica;
             Registry registry;
             try {
                 registry = LocateRegistry.createRegistry(KvReplicaInterface.port);
@@ -56,15 +54,17 @@ public class ReplicaServer {
                 logger.info("Unable to create registry.... Checking if registry already exist");
                 registry = LocateRegistry.getRegistry(KvReplicaInterface.port);
             }
-            KvReplicaInterface nodeStub = (KvReplicaInterface) UnicastRemoteObject.exportObject(kvStoreMasterClient, KvReplicaInterface.port);
+            KvReplicaInterface nodeStub = (KvReplicaInterface) UnicastRemoteObject.exportObject(replica, KvReplicaInterface.port);
+            registry.rebind(KvReplicaInterface.hostname, nodeStub);
 
-            registry.rebind(this.hostname, nodeStub);
-            kvStoreMasterClient.selfStub = nodeStub;
-            kvStoreMasterClient.persistInit();
+            this.hostname = KvReplicaInterface.hostname;
+            replica.selfStub = nodeStub;
+            replica.replicaStartup();//change to startup;
+
             System.out.println("ip -- " + selfIp.getHostAddress());
             logger.info("KV Store Complete\nmaster Name -- " + hostname);
             logger.info("ip -- " + selfIp.getHostAddress());
-        } catch (RemoteException | NotBoundException e) {
+        } catch (Exception e) {
             System.out.println("KV Store Startup Failure ... Proceeding to shutdown");
             logger.error("KV Store Startup Failure ...");
             shutdown(e);
@@ -73,19 +73,18 @@ public class ReplicaServer {
 
 
     private void shutdown(Exception exception) {
-        System.out.println("Shutting down Persistent KV store master");
-        logger.info("Shutting down Persistent KV store master");
+        // Think about making 1 shutdown method for all servers
+        System.out.println("Shutting down the replica");
+        logger.info("Shutting down the replica");
         if (exception != null) {
-            logger.error("The following error lead to the shutdown");
-            logger.error(exception.getMessage());
+            logger.error("The following error lead to the shutdown " + exception.getMessage());
             logger.error("Full StackTrace is as Follows", exception);
         }
 
-        if (this.kvStoreMaster != null) {
-            this.kvStoreMaster.shutdown();
+        if (this.replica != null) {
+            this.replica.shutdown();
         }
         try {
-
             Registry registry = LocateRegistry.getRegistry();
             registry.unbind(this.hostname);
             UnicastRemoteObject.unexportObject(this.kvClientInterface, true);
@@ -117,7 +116,7 @@ public class ReplicaServer {
         }
     }
 
-    void showAvailableComands() {
+    private void showAvailableComands() {
         System.out.println("\n#####################");
         System.out.println("\nFollowing commands are available");
         System.out.println("1. Exit");
@@ -131,8 +130,11 @@ public class ReplicaServer {
             ser.startRMIServer();
             ser.run();
         } catch (Exception e) {
-            logger.error(e);
-            logger.error(e.getStackTrace());
+            logger.error("Exception thrown at startup of replica." + e.getMessage());
+            logger.error("stactTrace -- ", e);
+            System.out.println("Error " + e.getMessage());
+            System.out.println("Shutting down");
+            logger.info("Exiting the replica");
         }
     }
 }
