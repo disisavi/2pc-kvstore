@@ -50,12 +50,12 @@ public class server {
             this.kvStoreMaster = kvStoreMasterClient;
             Registry registry;
             try {
-                registry = LocateRegistry.createRegistry(KvMasterReplicaInterface.port);
+                registry = LocateRegistry.createRegistry(KvClientInterface.port);
             } catch (RemoteException e) {
                 logger.info("Unable to create registry.... Checking if registry already exist");
-                registry = LocateRegistry.getRegistry(KvMasterReplicaInterface.port);
+                registry = LocateRegistry.getRegistry(KvClientInterface.port);
             }
-            KvClientInterface nodeStub = (KvClientInterface) UnicastRemoteObject.exportObject(kvStoreMasterClient, KvStoreMasterClient.port);
+            KvClientInterface nodeStub = (KvClientInterface) UnicastRemoteObject.exportObject(kvStoreMasterClient, KvClientInterface.port);
             this.kvClientInterface = nodeStub;
             registry.rebind(KvClientInterface.name, nodeStub);
             System.out.println("KV Store Complete\nmaster Name -- " + KvClientInterface.name);

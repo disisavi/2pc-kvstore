@@ -67,7 +67,11 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
             throw new RemoteException("Action Not performed");
         } finally {
             synchronized (KvStoreMasterClient.ongoingUserChanges) {
-                if (0 == KvStoreMasterClient.ongoingUserChanges.decrementAndGet()) {
+                Integer decrementAndGet = KvStoreMasterClient.ongoingUserChanges.decrementAndGet();
+                if (decrementAndGet < 0) {
+                    KvStoreMasterClient.ongoingUserChanges.set(0);
+                }
+                if (0 == KvStoreMasterClient.ongoingUserChanges.get()) {
                     KvStoreMasterClient.ongoingUserChanges.notify();
                 }
             }

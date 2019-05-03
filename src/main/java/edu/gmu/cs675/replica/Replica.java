@@ -115,11 +115,14 @@ public class Replica implements KvReplicaInterface {
                 keyValueMap.get(key).dirty = true;
                 keyValueMap.get(key).keyValuePersistence.setKey(key);
                 keyValueMap.get(key).keyValuePersistence.setValue(value);
+                dataObject.updateObject(keyValueMap.get(key).keyValuePersistence);
             } else {
                 KvClass kvClass = new KvClass(key);
                 KeyValuePersistence keyValuePersistence = new KeyValuePersistence(key, value);
                 kvClass.dirty = false;
                 kvClass.keyValuePersistence = keyValuePersistence;
+                keyValueMap.put(key, kvClass);
+                dataObject.persistNewObject(keyValuePersistence);
             }
         }
     }

@@ -51,15 +51,16 @@ public class ReplicaServer {
 
             Registry registry;
             try {
-                registry = LocateRegistry.createRegistry(KvMasterReplicaInterface.port);
+                registry = LocateRegistry.createRegistry(KvReplicaInterface.port);
             } catch (RemoteException e) {
                 logger.info("Unable to create registry.... Checking if registry already exist");
-                registry = LocateRegistry.getRegistry(KvMasterReplicaInterface.port);
+                registry = LocateRegistry.getRegistry(KvReplicaInterface.port);
             }
             KvReplicaInterface nodeStub = (KvReplicaInterface) UnicastRemoteObject.exportObject(kvStoreMasterClient, KvReplicaInterface.port);
 
             registry.rebind(this.hostname, nodeStub);
-            System.out.println("KV Store Complete\nmaster Name -- " + hostname);
+            kvStoreMasterClient.selfStub = nodeStub;
+            kvStoreMasterClient.persistInit();
             System.out.println("ip -- " + selfIp.getHostAddress());
             logger.info("KV Store Complete\nmaster Name -- " + hostname);
             logger.info("ip -- " + selfIp.getHostAddress());

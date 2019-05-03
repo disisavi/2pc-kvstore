@@ -19,6 +19,9 @@ public class TransactionLogger implements Serializable {
         this.state = TransactionState.START;
     }
 
+    public TransactionLogger() {
+    }
+
 
     public int getState() {
         return state;

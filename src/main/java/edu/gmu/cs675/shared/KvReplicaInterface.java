@@ -9,7 +9,7 @@ import java.util.HashMap;
 //Master will talk to replica using the following API
 
 public interface KvReplicaInterface extends Remote {
-    int port = 1023;
+    int port = 4000;
 
     void delete(Integer transactionID, String key) throws RemoteException, NotFoundException;
 

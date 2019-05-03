@@ -76,6 +76,7 @@ public class KvStoreMasterClient implements KvClientInterface {
     }
 
     private void changeTransactionLoggerState(Integer transactionID, Integer state, String key, String value) {
+        Boolean newtransaction = false;
         TransactionLogger transactionLogger = null;
         if (this.transactionLoggerMap.containsKey(transactionID)) {
             transactionLogger = this.transactionLoggerMap.get(transactionID);
@@ -85,10 +86,12 @@ public class KvStoreMasterClient implements KvClientInterface {
             }
 
         } else {
+            newtransaction = true;
             transactionLogger = new TransactionLogger(transactionID);
             transactionLogger.setKey(key);
             transactionLogger.setValue(value);
             transactionLogger.setState(state);
+            transactionLoggerMap.put(transactionID, transactionLogger);
         }
 
         transactionLogger.setState(state);
@@ -96,7 +99,12 @@ public class KvStoreMasterClient implements KvClientInterface {
             transactionLogger.setKey(key);
             transactionLogger.setValue(value);
         }
-        this.dataObject.updateObject(transactionLogger);
+        if (newtransaction) {
+            this.dataObject.persistNewObject(transactionLogger);
+        } else {
+            this.dataObject.updateObject(transactionLogger);
+        }
+
         this.dataObject.commit();
     }
 
@@ -115,7 +123,7 @@ public class KvStoreMasterClient implements KvClientInterface {
                 } else {
                     currentTransactionID.incrementAndGet();
                 }
-                transactionID.set(ongoingTransactions.incrementAndGet());
+                transactionID.set(currentTransactionID.get());
             }
         } catch (InterruptedException e) {
             logger.error("Transaction id couldn't be obtained.", e);

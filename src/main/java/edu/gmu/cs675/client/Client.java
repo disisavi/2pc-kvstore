@@ -23,7 +23,7 @@ public class Client {
         System.out.println("Enter the Game server ip ");
         String host = scanner.next();
 
-        Registry gameRegistry = getRegistry(KvClientInterface.name, KvClientInterface.port);
+        Registry gameRegistry = getRegistry(host, KvClientInterface.port);
         KvClientInterface kvClientInterface = (KvClientInterface) gameRegistry.lookup(KvClientInterface.name);
         return kvClientInterface;
     }
