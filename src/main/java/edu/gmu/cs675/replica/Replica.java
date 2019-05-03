@@ -22,16 +22,16 @@ import static java.rmi.registry.LocateRegistry.getRegistry;
 
 public class Replica implements KvReplicaInterface {
     Logger logger = Logger.getLogger(Replica.class);
-    DOA dataObject;
     Map<String, KvClass> keyValueMap;
     Map<Integer, TransactionLoggerReplica> transactionLoggerMap;
     List<KvMasterReplicaInterface> masterList;
     KvReplicaInterface selfStub;
+    DOA dataObject;
 
     Replica() throws RemoteException, NotBoundException {
-        dataObject = DOA.getDoa();
         keyValueMap = new ConcurrentHashMap<>();
         transactionLoggerMap = new ConcurrentHashMap<>();
+        dataObject = DOA.getDoa();
         masterList = this.getStubsList();
 
     }
@@ -43,6 +43,8 @@ public class Replica implements KvReplicaInterface {
      * We will, at this point, get the stream of most uptodate keys and values from the Server and persist those values.
      */
     void replicaStartup() throws RemoteException {
+        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "1000");
+
         Set<Object> keyValuePersistenceSet = dataObject.getAll(KeyValuePersistence.class);
         if (keyValuePersistenceSet.size() != 0) {
             for (Object object : keyValuePersistenceSet) {
@@ -92,18 +94,21 @@ public class Replica implements KvReplicaInterface {
 
                 replicaInterfaces.add(getStub(false, null));
             } else {
-                for (Object object : objectSet) {
-                    Cordinators cordinators = (Cordinators) object;
-                    try {
+                try {
+                    for (Object object : objectSet) {
+                        Cordinators cordinators = (Cordinators) object;
+
                         replicaInterfaces.add(getStub(true, cordinators.getIP()));
-                    } catch (RemoteException e) {
-                        logger.error("Unable to contact coordinator");
-                        logger.error("Remote Exception.. ", e);
-                        logger.info("Will now take user input for ip");
-                        System.out.println("Couldn't connect to previously connected Coordinator...");
-                        System.out.println("Lets try with a new coordinator");
-                        replicaInterfaces.add(getStub(false, null));
+
                     }
+                } catch (RemoteException e) {
+                    logger.error("Unable to contact coordinator");
+                    logger.error("Remote Exception.. ", e);
+                    logger.info("Will now take user input for ip");
+                    System.out.println("Couldn't connect to previously connected Coordinator...");
+                    System.out.println("Lets try with a new coordinator");
+                    replicaInterfaces.clear();
+                    replicaInterfaces.add(getStub(false, null));
                 }
             }
             return replicaInterfaces;
@@ -127,6 +132,11 @@ public class Replica implements KvReplicaInterface {
         }
         Registry gameRegistry = getRegistry(host, KvMasterReplicaInterface.port);
         KvMasterReplicaInterface kvClientInterface = (KvMasterReplicaInterface) gameRegistry.lookup(KvMasterReplicaInterface.name);
+        Set<Object> objectSet = dataObject.getAll(Cordinators.class);
+        for (Object object : objectSet) {
+            Cordinators removeCordinator = (Cordinators) object;
+            dataObject.removeObject(removeCordinator);
+        }
         Cordinators cordinators = new Cordinators(host);
         dataObject.persistNewObject(cordinators);
         dataObject.commit();
@@ -195,7 +205,7 @@ public class Replica implements KvReplicaInterface {
         transactionLoggerReplica.setKey(key);
         dataObject.persistNewObject(transactionLoggerReplica);
         transactionLoggerMap.put(transactionId, transactionLoggerReplica);
-        System.out.println("voted yes for commit ");
+        System.out.println("\nvoted yes for commit ");
         return true;
     }
 
@@ -227,7 +237,7 @@ public class Replica implements KvReplicaInterface {
                 keyValueMap.put(key, kvClass);
                 dataObject.persistNewObject(keyValuePersistence);
             }
-            System.out.println("{k,v} --" + key + ", " + value);
+            System.out.println("\t{k,v} --" + key + ", " + value);
         }
     }
 
@@ -236,7 +246,7 @@ public class Replica implements KvReplicaInterface {
         transactionLoggerMap.get(transactionId).setState(TransactionState.COMPLETE);
         dataObject.updateObject(transactionLoggerMap.get(transactionId));
         dataObject.commit();
-        System.out.println("The transaction " + transactionId + " is committed");
+        System.out.println("\tThe transaction " + transactionId + " is committed");
     }
 
     @Override

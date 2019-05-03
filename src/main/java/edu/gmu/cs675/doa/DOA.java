@@ -2,6 +2,7 @@ package edu.gmu.cs675.doa;
 
 import org.apache.log4j.Logger;
 import org.hibernate.Session;
+import org.hibernate.Transaction;
 
 import java.util.HashSet;
 import java.util.List;
@@ -11,10 +12,12 @@ public class DOA {
     private static DOA doa;
     final static Logger logger = Logger.getLogger(DOA.class);
     private Session session;
+    private Transaction transaction;
 
     private DOA() {
         this.session = HibernateUtil.getSessionFactory().openSession();
-        this.session.beginTransaction();
+        transaction = this.session.beginTransaction();
+
     }
 
     public static DOA getDoa() {
@@ -28,46 +31,54 @@ public class DOA {
         return doa;
     }
 
+    void getNewSession() {
+        this.session = HibernateUtil.getSessionFactory().openSession();
+        transaction = this.session.beginTransaction();
+    }
+
     void startTrasaction() {
-        this.session.getTransaction().begin();
+        transaction.begin();
     }
 
     public Object getByKey(Class className, String key) {
-        if (!this.session.getTransaction().isActive()) {
+        if (!this.transaction.isActive()) {
             this.startTrasaction();
         }
         Object object = this.session.get(className, key);
+        this.commit();
         return object;
     }
 
     public void updateObject(Object object) {
-        if (!this.session.getTransaction().isActive()) {
+        if (!this.transaction.isActive()) {
             this.startTrasaction();
         }
         this.session.update(object);
     }
 
     public synchronized void persistNewObject(Object object) {
-        if (!this.session.getTransaction().isActive()) {
+        if (!this.transaction.isActive()) {
             this.startTrasaction();
         }
         this.session.persist(object);
     }
 
     public synchronized void removeObject(Object object) {
-        if (!this.session.getTransaction().isActive()) {
+        if (!this.transaction.isActive()) {
             this.startTrasaction();
         }
         this.session.delete(object);
     }
 
     public Set<Object> getAll(Class classname) {
-        if (!this.session.getTransaction().isActive()) {
+        if (!this.transaction.isActive()) {
             this.startTrasaction();
         }
 
         List objects = this.session.createCriteria(classname).list();
         Set<Object> retrunObjectSet = new HashSet<>(objects);
+
+        this.commit();
         return retrunObjectSet;
 
 
@@ -84,7 +95,12 @@ public class DOA {
     }
 
     public void commit() {
-        this.session.getTransaction().commit();
-        this.session.close();
+        try {
+            this.session.getTransaction().commit();
+            this.getNewSession();
+        } catch (Exception e) {
+            this.session.getTransaction().rollback();
+            throw e;
+        }
     }
 }

@@ -80,9 +80,12 @@ public class ReplicaServer {
             logger.error("The following error lead to the shutdown " + exception.getMessage());
             logger.error("Full StackTrace is as Follows", exception);
         }
-
-        if (this.replica != null) {
-            this.replica.shutdown();
+        try {
+            if (this.replica != null) {
+                this.replica.shutdown();
+            }
+        } catch (Exception ex) {
+            logger.error("Stack tracke", ex);
         }
         try {
             Registry registry = LocateRegistry.getRegistry();

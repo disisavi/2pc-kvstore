@@ -130,6 +130,7 @@ public class KvStoreMasterClient implements KvClientInterface {
 
     Boolean pollAllReplicas(Integer transactionId, String key, String value) throws TimeoutException {
         this.changeTransactionLoggerState(transactionId, TransactionState.POLL, key, value);
+        System.out.println("\tPolling all replicas");
         try {
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
                 if (!entry.getValue().readyToCommit(transactionId, key, value)) {
@@ -138,15 +139,17 @@ public class KvStoreMasterClient implements KvClientInterface {
             }
         } catch (RemoteException e) {
             logger.error("stacktrace -- Polling ", e);
+            System.out.println("\tPolling un successful");
             return false;
         }
+        System.out.println("\tPolling Successful !!!");
         return true;
     }
 
     void putAndConfirmCommit(Integer transactionID, String key, String value) throws NotFoundException, RemoteException {
+        System.out.println("\tPutting the values in each replica");
         this.changeTransactionLoggerState(transactionID, TransactionState.ACTIONCHECK, key, value);
         try {
-
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
                 entry.getValue().put(transactionID, key, value);
             }
@@ -158,6 +161,7 @@ public class KvStoreMasterClient implements KvClientInterface {
             }
         } catch (RemoteException | NotFoundException e) {
             logger.error("stacktrace -- Polling ", e);
+            System.out.println("\tPutting failed");
             throw e;
         }
 
@@ -167,7 +171,7 @@ public class KvStoreMasterClient implements KvClientInterface {
     void deleteAndConfirmCommit(Integer transactionID, String key, String value) throws NotFoundException, RemoteException {
         this.changeTransactionLoggerState(transactionID, TransactionState.ACTIONCHECK, key, value);
         try {
-
+            System.out.println("\tdeleting the values in each replica");
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
                 entry.getValue().delete(transactionID, key);
             }
@@ -178,6 +182,7 @@ public class KvStoreMasterClient implements KvClientInterface {
             }
         } catch (RemoteException | NotFoundException e) {
             logger.error("stacktrace -- Polling ", e);
+            System.out.println("\tDeletion Failed");
             throw e;
         }
 
@@ -185,8 +190,10 @@ public class KvStoreMasterClient implements KvClientInterface {
 
 
     void sendAbortNotification(Integer transactionID) {
+
         for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
             try {
+                System.out.println("\tSending Abort Signal");
                 entry.getValue().abortTransaction(transactionID);
             } catch (RemoteException e) {
                 logger.error("Threw Remote exception. We wont do anything for it", e);
@@ -198,6 +205,7 @@ public class KvStoreMasterClient implements KvClientInterface {
     @Override
 
     public void put(String key, String value) throws RemoteException, TimeoutException, IllegalStateException {
+        System.out.println("Put requested for key :" + key);
         try {
             Integer transactionID = getTransactionID();
             changeTransactionLoggerState(transactionID, TransactionState.START, key, value);
