@@ -42,7 +42,7 @@ public class Replica implements KvReplicaInterface {
      * not able to contact coordinators in DB (maybe thecoordinatorr migrated), the user will then have option to enter ip for the new master
      * We will, at this point, get the stream of most uptodate keys and values from the Server and persist those values.
      */
-    void replicaStartup() {
+    void replicaStartup() throws RemoteException {
         Set<Object> keyValuePersistenceSet = dataObject.getAll(KeyValuePersistence.class);
         if (keyValuePersistenceSet.size() != 0) {
             for (Object object : keyValuePersistenceSet) {
@@ -57,7 +57,19 @@ public class Replica implements KvReplicaInterface {
             initStream = masterList.get(0).registerReplica(this.selfStub);
         } catch (RemoteException e) {
             logger.error("Unable to get init stream");
+            logger.error("stacktrace -", e);
+            throw e;
+        } catch (IllegalArgumentException e) {
+            System.out.println("couldn't get init stream.. will try again by de registering and then registering.");
             logger.error("stacktrace ", e);
+            try {
+                masterList.get(0).deRegisterReplica();
+                initStream = masterList.get(0).registerReplica(this.selfStub);
+            } catch (RemoteException ex) {
+                logger.error("Trace -- ", ex);
+                throw ex;
+            }
+
         }
 
         if (null != initStream && initStream.size() > 0) {
@@ -143,10 +155,10 @@ public class Replica implements KvReplicaInterface {
     }
 
     @Override
-    public String get(String key) throws RemoteException, NotFoundException {
+    public String get(String key) throws NotFoundException {
         if (keyValueMap.containsKey(key)) {
+            System.out.println("Asked for key " + key + ", value returned " + keyValueMap.get(key).keyValuePersistence.getValue());
             return keyValueMap.get(key).keyValuePersistence.getValue();
-
         } else throw new NotFoundException("Key not found.");
     }
 
@@ -158,6 +170,7 @@ public class Replica implements KvReplicaInterface {
     public HashMap<String, String> getAll() throws RemoteException {
         HashMap<String, String> returnMap = new HashMap<>();
         keyValueMap.forEach(((s, kvClass) -> returnMap.put(s, kvClass.keyValuePersistence.getValue())));
+        System.out.println("Asked for all kv pairs");
         return returnMap;
     }
 
@@ -182,6 +195,7 @@ public class Replica implements KvReplicaInterface {
         transactionLoggerReplica.setKey(key);
         dataObject.persistNewObject(transactionLoggerReplica);
         transactionLoggerMap.put(transactionId, transactionLoggerReplica);
+        System.out.println("voted yes for commit ");
         return true;
     }
 
@@ -213,12 +227,16 @@ public class Replica implements KvReplicaInterface {
                 keyValueMap.put(key, kvClass);
                 dataObject.persistNewObject(keyValuePersistence);
             }
+            System.out.println("{k,v} --" + key + ", " + value);
         }
     }
 
     @Override
     public void commit(Integer transactionId) throws RemoteException {
+        transactionLoggerMap.get(transactionId).setState(TransactionState.COMPLETE);
+        dataObject.updateObject(transactionLoggerMap.get(transactionId));
         dataObject.commit();
+        System.out.println("The transaction " + transactionId + " is committed");
     }
 
     @Override
@@ -259,6 +277,3 @@ public class Replica implements KvReplicaInterface {
         }
     }
 }
-
-
-//Write more consistent console messages

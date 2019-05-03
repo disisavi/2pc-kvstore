@@ -2,6 +2,7 @@ package edu.gmu.cs675.master;
 
 
 import edu.gmu.cs675.doa.DOA;
+import edu.gmu.cs675.master.model.Replicas;
 import edu.gmu.cs675.shared.KvMasterReplicaInterface;
 import edu.gmu.cs675.shared.KvReplicaInterface;
 import org.apache.log4j.Logger;
@@ -19,12 +20,14 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
 
     private static Logger logger = Logger.getLogger(KvStoreMasterReplica.class);
     static Map<String, KvReplicaInterface> replicaInterfaceMap;
+    Map<String, Replicas> replicasMap;
     private DOA dataObject;
 
     KvStoreMasterReplica() {
         logger.info("Master initialisation started...");
         this.dataObject = DOA.getDoa();
         replicaInterfaceMap = new ConcurrentHashMap<>();
+        replicasMap = new ConcurrentHashMap<>();
         logger.info("Master initialisation Successful");
     }
 
@@ -52,8 +55,15 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
                     logger.info("Throwing exception to the Client");
                     throw new IllegalArgumentException("Host Already Registered.. Please Deregister and try again.");
                 }
+
                 HashMap<String, String> value = this.fetchAll();
                 replicaInterfaceMap.put(hostname, kvClient);
+                Replicas replicas = new Replicas(hostname);
+                replicasMap.put(hostname, replicas);
+
+                dataObject.persistNewObject(replicas);
+                dataObject.commit();
+
                 return value;
             } catch (ServerNotActiveException e) {
                 logger.error("Cannot get client Hostname.. " + e.getMessage() + " at thread " + Thread.currentThread().getId());
@@ -91,6 +101,8 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
                 String hostname = RemoteServer.getClientHost();
                 if (replicaInterfaceMap.containsKey(hostname)) {
                     replicaInterfaceMap.remove(hostname);
+                    dataObject.removeObject(replicasMap.get(hostname));
+                    replicasMap.remove(hostname);
                 } else {
                     throw new IllegalArgumentException("Host Doesnt seem to be initialised. Kindly register the client");
                 }

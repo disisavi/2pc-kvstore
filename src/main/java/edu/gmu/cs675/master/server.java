@@ -46,6 +46,7 @@ public class server {
     public void startRMIServer() {
 
         try {
+            System.out.println("Starting the RMI server...");
             KvStoreMasterClient kvStoreMasterClient = new KvStoreMasterClient(this.selfIp);
             this.kvStoreMaster = kvStoreMasterClient;
             Registry registry;
@@ -130,8 +131,8 @@ public class server {
             ser.startRMIServer();
             ser.run();
         } catch (Exception e) {
-            logger.error(e);
-            logger.error(e.getStackTrace());
+            logger.error("System failed to start..\n Stacktrace", e);
+            System.out.println("Error encountered. Exiting the system");
         }
     }
 }

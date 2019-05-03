@@ -1,0 +1,11 @@
+<!DOCTYPE hibernate-mapping PUBLIC
+        "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+        "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
+<hibernate-mapping package="edu.gmu.cs675.master.model">
+    <class name="Replicas" table="replica">
+        <id name="seq" type="java.lang.Integer">
+            <generator class="increment"/>
+        </id>
+        <property name="IP" type="string" length="100" not-null="true"/>
+    </class>
+</hibernate-mapping>

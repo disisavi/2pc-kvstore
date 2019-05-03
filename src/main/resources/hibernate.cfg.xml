@@ -5,8 +5,8 @@
 
 <hibernate-configuration>
     <session-factory>
-<!--        <property name="show_sql">true</property>-->
-<!--        <property name="format_sql">true</property>-->
+        <!--        <property name="show_sql">true</property>-->
+        <!--        <property name="format_sql">true</property>-->
         <property name="dialect">com.enigmabridge.hibernate.dialect.SQLiteDialect</property>
         <property name="connection.driver_class">org.sqlite.JDBC</property>
         <property name="connection.url">jdbc:sqlite:mydb.db</property>
@@ -17,6 +17,7 @@
 
         <mapping resource="edu/gmu/cs675/replica/model/keyvaluepersistence.hbm.xml"/>
         <mapping resource="edu/gmu/cs675/master/model/transactionLogger.hbm.xml"/>
+        <mapping resource="edu/gmu/cs675/master/model/replicaModel.hbm.xml"/>
         <mapping resource="edu/gmu/cs675/replica/model/transactionLoggerReplica.hbm.xml"/>
         <mapping resource="edu/gmu/cs675/replica/model/cordinatorModel.hbm.xml"/>
     </session-factory>

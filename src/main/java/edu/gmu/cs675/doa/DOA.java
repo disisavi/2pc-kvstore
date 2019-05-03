@@ -85,5 +85,6 @@ public class DOA {
 
     public void commit() {
         this.session.getTransaction().commit();
+        this.session.close();
     }
 }

@@ -26,9 +26,7 @@ import java.util.concurrent.locks.StampedLock;
 //Take request from Client and contact replica regarding the request
 public class KvStoreMasterClient implements KvClientInterface {
     private static Logger logger = Logger.getLogger(KvStoreMasterClient.class);
-    //    KvStoreMasterReplica kvStoreMaster;
-//    KvMasterReplicaInterface kvMasterReplicaInterface;
-    Map<Integer, TransactionLogger> transactionLoggerMap;
+    private Map<Integer, TransactionLogger> transactionLoggerMap;
     private Map<String, StampedLock> keyLockMap;
     private DOA dataObject;
 
@@ -37,10 +35,7 @@ public class KvStoreMasterClient implements KvClientInterface {
     static final AtomicInteger currentTransactionID = new AtomicInteger(-1);
 
 
-    InetAddress selfIp;
-
     KvStoreMasterClient(InetAddress ip) throws RemoteException {
-        this.selfIp = ip;
         this.startRMIServer();
         this.keyLockMap = new ConcurrentHashMap<>();
         this.transactionLoggerMap = new ConcurrentHashMap<>();
@@ -50,7 +45,7 @@ public class KvStoreMasterClient implements KvClientInterface {
 
     public void startRMIServer() throws RemoteException {
         KvStoreMasterReplica kvStoreMaster = new KvStoreMasterReplica();
-//        this.kvStoreMaster = kvStoreMaster;
+
         try {
 
             Registry registry;
@@ -61,7 +56,7 @@ public class KvStoreMasterClient implements KvClientInterface {
                 registry = LocateRegistry.getRegistry(KvMasterReplicaInterface.port);
             }
             KvMasterReplicaInterface nodeStub = (KvMasterReplicaInterface) UnicastRemoteObject.exportObject(kvStoreMaster, KvMasterReplicaInterface.port);
-//            this.kvMasterReplicaInterface = nodeStub;
+
             registry.rebind(KvMasterReplicaInterface.name, nodeStub);
             System.out.println("Binding complete");
         } catch (RemoteException e) {
@@ -72,7 +67,7 @@ public class KvStoreMasterClient implements KvClientInterface {
     }
 
     void shutdown() {
-
+        dataObject.shutdown();
     }
 
     private void changeTransactionLoggerState(Integer transactionID, Integer state, String key, String value) {
