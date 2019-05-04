@@ -61,7 +61,7 @@ public class KvStoreMasterClient implements KvClientInterface {
     }
 
     public void startRMIServer() throws RemoteException {
-        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "10");
+        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "100");
         KvStoreMasterReplica kvStoreMaster = new KvStoreMasterReplica();
         try {
             Registry registry;

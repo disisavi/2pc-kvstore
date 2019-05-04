@@ -7,6 +7,7 @@ import java.util.Objects;
 
 public class TransactionLoggerReplica implements Serializable {
     private static final long serialVersionUID = 7285422351781570L;
+    private Integer seq;
     private Integer transactionId;
     private String Key;
     private String Value;
@@ -65,4 +66,11 @@ public class TransactionLoggerReplica implements Serializable {
         return Objects.hash(getTransactionId());
     }
 
+    public Integer getSeq() {
+        return seq;
+    }
+
+    public void setSeq(Integer seq) {
+        this.seq = seq;
+    }
 }

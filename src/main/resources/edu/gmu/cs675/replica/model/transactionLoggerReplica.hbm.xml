@@ -3,7 +3,10 @@
         "http://www.hibernate.org/dtd/hibernate-mapping-3.0.dtd">
 <hibernate-mapping package="edu.gmu.cs675.replica.model">
     <class name="edu.gmu.cs675.replica.model.TransactionLoggerReplica" table="transactionLoggerReplica">
-        <id name="transactionId" type="java.lang.Integer"/>
+        <id name="seq" type="java.lang.Integer">
+            <generator class="increment"/>
+        </id>
+        <property name="transactionId" type="java.lang.Integer"/>
         <property name="Key" type="string" length="100" not-null="false"/>
         <property name="Value" type="string" length="100" not-null="false"/>
         <property name="state" type="integer" length="100" not-null="false"/>

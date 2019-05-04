@@ -154,7 +154,7 @@ public class ReplicaServer {
             ser.run();
         } catch (Exception e) {
             logger.error("Exception thrown at startup of replica." + e.getMessage());
-            logger.error("stactTrace -- ", e);
+            logger.error("stackTrace -- ", e);
             System.out.println("Error " + e.getMessage());
             System.out.println("Shutting down");
             logger.info("Exiting the replica");
