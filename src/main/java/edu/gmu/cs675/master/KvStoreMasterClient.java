@@ -92,7 +92,7 @@ public class KvStoreMasterClient implements KvClientInterface {
      * @param value         Can be null
      * @param operation     Which operation is being performed.there are only 2 right now, put and delete.
      */
-    private void changeTransactionLoggerState(Integer transactionID, Integer state, String key, String value, String operation) {
+    private synchronized void changeTransactionLoggerState(Integer transactionID, Integer state, String key, String value, String operation) {
         Boolean newtransaction = false;
         TransactionLogger transactionLogger = null;
         if (this.transactionLoggerMap.containsKey(transactionID)) {

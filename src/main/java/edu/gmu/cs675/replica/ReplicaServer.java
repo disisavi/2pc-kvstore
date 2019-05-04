@@ -54,6 +54,7 @@ public class ReplicaServer {
                 registry = LocateRegistry.createRegistry(KvReplicaInterface.port);
             } catch (RemoteException e) {
                 logger.info("Unable to create registry.... Checking if registry already exist");
+                logger.error("error", e);
                 registry = LocateRegistry.getRegistry(KvReplicaInterface.port);
             }
             KvReplicaInterface nodeStub = (KvReplicaInterface) UnicastRemoteObject.exportObject(replica, KvReplicaInterface.port);
