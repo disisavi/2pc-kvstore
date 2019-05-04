@@ -51,8 +51,7 @@ public class Client {
             System.out.println("Key " + key + " is deleted");
         } catch (RemoteException | TimeoutException e) {
             System.out.println("Couldn't get because " + e.getMessage());
-        }
-        catch (Exception ex){
+        } catch (Exception ex) {
             System.out.println("oops, the operation failed");
         }
     }
@@ -63,57 +62,57 @@ public class Client {
         Scanner scanner = new Scanner(System.in);
         while (run) {
             String[] command = scanner.nextLine().split(" ", 2);
-
-            switch (command[0].toUpperCase()) {
-                case "CLEAR":
-                    this.clearConsole();
-                    break;
-                case "PUT":
-                    if (command.length == 1) {
-                        System.out.println("please enter the command in correct format");
+            try {
+                switch (command[0].toUpperCase()) {
+                    case "CLEAR":
+                        this.clearConsole();
                         break;
-                    } else {
-                        String[] insertParam = command[1].split(" ", 0);
-                        if (insertParam.length == 1) {
-                            System.out.println("Kindly follow the correct Format of Insert command");
+                    case "PUT":
+                        if (command.length == 1) {
+                            System.out.println("please enter the command in correct format");
+                            break;
+                        } else {
+                            String[] insertParam = command[1].split(" ", 0);
+                            if (insertParam.length == 1) {
+                                System.out.println("Kindly follow the correct Format of Insert command");
+                                break;
+                            }
+
+                            this.put(insertParam[0], insertParam[1]);
                             break;
                         }
-
-                        this.put(insertParam[0], insertParam[1]);
+                    case "GET":
+                        if (command.length == 1) {
+                            System.out.println("please enter the command in correct format");
+                            break;
+                        } else {
+                            String[] insertParam = command[1].split(" ", 0);
+                            this.get(insertParam[0]);
+                            break;
+                        }
+                    case "DELETE":
+                        if (command.length == 1) {
+                            System.out.println("please enter the command in correct format");
+                            break;
+                        } else {
+                            String[] insertParam = command[1].split(" ", 0);
+                            this.delete(insertParam[0]);
+                            break;
+                        }
+                    case "show":
+                        this.showAvailableCommands();
                         break;
-                    }
-                case "GET":
-                    if (command.length == 1) {
-                        System.out.println("please enter the command in correct format");
-                        break;
-                    } else {
-                        String[] insertParam = command[1].split(" ", 0);
-                        this.get(insertParam[0]);
-                        break;
-                    }
-                case "DELETE":
-                    if (command.length == 1) {
-                        System.out.println("please enter the command in correct format");
-                        break;
-                    } else {
-                        String[] insertParam = command[1].split(" ", 0);
-                        this.delete(insertParam[0]);
-                        break;
-                    }
-                case "show":
-                    this.showAvailableCommands();
-                    break;
-                default:
-                    System.out.println("Please enter one of the printed commands");
-                    this.showAvailableCommands();
+                    default:
+                        System.out.println("Please enter one of the printed commands");
+                        this.showAvailableCommands();
+                }
+            } catch (Exception ex) {
+                System.out.println("Operation failed.. " + ex.getMessage());
             }
         }
     }
 
     void showAvailableCommands() {
-        System.out.println("\n1.Put");
-        System.out.println("2. Get");
-
         System.out.println("\n#####################");
         System.out.println("The following commands have been implemented at Client");
         System.out.println("1.Put -     |-> put \"key\" \"value\"");
