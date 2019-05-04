@@ -61,7 +61,6 @@ public class KvStoreMasterClient implements KvClientInterface {
     }
 
     public void startRMIServer() throws RemoteException {
-        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "100");
         KvStoreMasterReplica kvStoreMaster = new KvStoreMasterReplica();
         try {
             Registry registry;
@@ -237,8 +236,12 @@ public class KvStoreMasterClient implements KvClientInterface {
     void rollBackAbort(Integer transactionId) {
         String key = transactionLoggerMap.get(transactionId).getKey();
         TransactionLogger lastLogger = dataObject.getLastValidValue(key);
-        if (lastLogger.getOperation().equalsIgnoreCase("put")) {
-            put(key, lastLogger.getValue());
+        if (transactionId > lastLogger.getTransactionId()) {
+            if (lastLogger.getOperation().equalsIgnoreCase("put")) {
+                put(key, lastLogger.getValue());
+            } else {
+                delete(key);
+            }
         } else {
             delete(key);
         }

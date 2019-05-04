@@ -39,7 +39,6 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
 
 
     void startup() {
-        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "10");
         System.out.println(System.getProperty("sun.rmi.transport.tcp.responseTimeout"));
         Set<Object> objectSet = dataObject.getAll(Replicas.class);
         for (Object object : objectSet) {

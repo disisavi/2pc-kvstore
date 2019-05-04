@@ -43,7 +43,6 @@ public class Replica implements KvReplicaInterface {
      * We will, at this point, get the stream of most uptodate keys and values from the Server and persist those values.
      */
     void replicaStartup() throws RemoteException {
-        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "10000");
 
         Set<Object> keyValuePersistenceSet = dataObject.getAll(KeyValuePersistence.class);
         if (keyValuePersistenceSet.size() != 0) {
