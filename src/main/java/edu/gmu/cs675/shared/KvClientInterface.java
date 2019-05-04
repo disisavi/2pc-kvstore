@@ -9,7 +9,7 @@ import java.util.concurrent.TimeoutException;
 
 // Interface to master for client
 public interface KvClientInterface extends Remote {
-    int port = 1024;
+    int port = 49151;
     String name = "master";
 
     void put(String key, String value) throws RemoteException, TimeoutException, IllegalStateException;

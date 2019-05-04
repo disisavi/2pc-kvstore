@@ -38,7 +38,7 @@ public class ReplicaServer {
     private InetAddress getSelfIP() throws SocketException, UnknownHostException {
 
         final DatagramSocket socket = new DatagramSocket();
-        socket.connect(InetAddress.getByName("8.8.8.8"), KvMasterReplicaInterface.port);
+        socket.connect(InetAddress.getByName("8.8.8.8"), 80);
         InetAddress ip = InetAddress.getByName(socket.getLocalAddress().getHostAddress());
 
         return ip;
@@ -138,6 +138,8 @@ public class ReplicaServer {
 
     private void showAvailableComands() {
         System.out.println("\n#####################");
+        System.out.println("\nReplica server is up and running");
+        System.out.println("\n********************");
         System.out.println("\nFollowing commands are available");
         System.out.println("1. Show --> Get all the values in this replica right now");
         System.out.println("2. Exit");

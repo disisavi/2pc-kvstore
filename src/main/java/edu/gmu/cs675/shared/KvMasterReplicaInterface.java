@@ -7,7 +7,7 @@ import java.util.HashMap;
 
 //Replica will talk to Master Using this API
 public interface KvMasterReplicaInterface extends Remote {
-    int port = 1025;
+    int port = 49152;
     String name = "mvMaster";
 
     HashMap<String, String> registerReplica(KvReplicaInterface kvClient) throws RemoteException, IllegalArgumentException;
