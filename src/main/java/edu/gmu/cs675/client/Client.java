@@ -33,7 +33,6 @@ public class Client {
             this.kvClientInterface.put(key, value);
         } catch (RemoteException | TimeoutException e) {
             System.out.println("Couldnt be completed because " + e.getMessage());
-
         }
     }
 
@@ -43,7 +42,18 @@ public class Client {
             System.out.println("Value is " + string);
         } catch (RemoteException | NotFoundException e) {
             System.out.println("Couldn't get because " + e.getMessage());
-            e.printStackTrace();
+        }
+    }
+
+    void delete(String key) {
+        try {
+            this.kvClientInterface.delete(key);
+            System.out.println("Key " + key + " is deleted");
+        } catch (RemoteException | TimeoutException e) {
+            System.out.println("Couldn't get because " + e.getMessage());
+        }
+        catch (Exception ex){
+            System.out.println("oops, the operation failed");
         }
     }
 
@@ -81,6 +91,18 @@ public class Client {
                         this.get(insertParam[0]);
                         break;
                     }
+                case "DELETE":
+                    if (command.length == 1) {
+                        System.out.println("please enter the command in correct format");
+                        break;
+                    } else {
+                        String[] insertParam = command[1].split(" ", 0);
+                        this.delete(insertParam[0]);
+                        break;
+                    }
+                case "show":
+                    this.showAvailableCommands();
+                    break;
                 default:
                     System.out.println("Please enter one of the printed commands");
                     this.showAvailableCommands();
@@ -91,6 +113,17 @@ public class Client {
     void showAvailableCommands() {
         System.out.println("\n1.Put");
         System.out.println("2. Get");
+
+        System.out.println("\n#####################");
+        System.out.println("The following commands have been implemented at Client");
+        System.out.println("1.Put -     |-> put \"key\" \"value\"");
+        System.out.println("2.Get       |--> get \"key\"");
+        System.out.println("1.delete    |--> delete \"key\"");
+        System.out.println("Bonus Commands");
+        System.out.println("4. Clear    |--> To Clear the console, so that we may better see the results.");
+        System.out.println("5. Show     |--> To show list of all available commands");
+        System.out.println("Exit --> To exit\nPlease type in the command...");
+
     }
 
     void clearConsole() {

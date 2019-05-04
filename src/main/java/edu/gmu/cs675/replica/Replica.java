@@ -54,7 +54,7 @@ public class Replica implements KvReplicaInterface {
             dataObject.commit();
         }
 
-        HashMap<String, String> initStream = null;
+        HashMap<String, String> initStream;
         try {
             initStream = masterList.get(0).registerReplica(this.selfStub);
         } catch (RemoteException e) {

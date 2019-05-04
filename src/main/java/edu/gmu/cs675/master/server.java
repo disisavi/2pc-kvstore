@@ -136,3 +136,12 @@ public class server {
         }
     }
 }
+
+
+//Todo
+//    0.Before full startup, get the most current TransactionId from the table for both replica and
+//    1. Actions after abort
+//    2. removing replica after certain number of No's
+//    3. Add commands for replica's
+//    4. Improve Clients crash resisting abilities a lot
+//    5. Re registering of replica seems to be fault

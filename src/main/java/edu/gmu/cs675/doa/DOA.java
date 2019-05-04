@@ -7,6 +7,7 @@ import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 
 import java.util.HashSet;
@@ -54,21 +55,30 @@ public class DOA {
         return object;
     }
 
+    public Integer getLastTransactionID() {
+        Criteria criteria = session.createCriteria(TransactionLogger.class);
+        criteria.setProjection(Projections.max("transactionId"));
+
+        Integer returnResult = (Integer) criteria.uniqueResult();
+
+        commit();
+        return returnResult;
+    }
+
     public List getTransactionsNotComplete() {
         Criteria criteria = session.createCriteria(TransactionLogger.class);
         criteria.add(Restrictions.eq("state", TransactionState.ACTIONCHECK));
         criteria.add(Restrictions.eq("state", TransactionState.COMMIT));
+        criteria.add(Restrictions.eq("state", TransactionState.ABORT));
         List transactionLoggerList = criteria.list();
         commit();
         return transactionLoggerList;
     }
 
-    //add remainder of the criteria and add abort recovery method
-    //and kindly for the love of god, please be consistent with the logger states
     public TransactionLogger getLastValidValue(String key) {
         Criteria criteria = session.createCriteria(TransactionLogger.class);
         criteria.add(Restrictions.eq("key", key));
-        criteria.add(Restrictions.eq("state", TransactionState.ACTIONCHECK));
+        criteria.add(Restrictions.eq("state", TransactionState.COMPLETE));
         criteria.addOrder(Order.desc("transactionId"));
         criteria.setMaxResults(1);
         TransactionLogger logger = (TransactionLogger) criteria.uniqueResult();

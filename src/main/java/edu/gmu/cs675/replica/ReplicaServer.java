@@ -13,6 +13,8 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 public class ReplicaServer {
@@ -109,12 +111,27 @@ public class ReplicaServer {
         while (runAlways) {
             String argumet = scanner.nextLine();
             String[] command = argumet.trim().split(" ", 2);
-            switch (command[0].toUpperCase()) {
-                case "EXIT":
-                    this.shutdown(new Exception("Server Requested Shutdown"));
-                default:
-                    System.out.println("Please enter one of the printed commands");
-                    this.showAvailableComands();
+            try {
+                switch (command[0].toUpperCase()) {
+                    case "EXIT":
+                        this.shutdown(new Exception("Server Requested Shutdown"));
+                        break;
+
+                    case "SHOW":
+                        HashMap<String, String> keyValue = this.replica.getAll();
+                        System.out.println("All the values are");
+                        for (Map.Entry<String, String> entry : keyValue.entrySet()) {
+                            System.out.println("\tKey, Value ->" + entry.getKey() + ", " + entry.getValue());
+                        }
+                        break;
+
+                    default:
+                        System.out.println("Please enter one of the printed commands");
+                        this.showAvailableComands();
+                }
+            } catch (Exception e) {
+                System.out.println("Action " + command[0].toUpperCase() + " could not be performed");
+                logger.error("Error -- ", e);
             }
         }
     }
@@ -122,7 +139,8 @@ public class ReplicaServer {
     private void showAvailableComands() {
         System.out.println("\n#####################");
         System.out.println("\nFollowing commands are available");
-        System.out.println("1. Exit");
+        System.out.println("1. Show --> Get all the values in this replica right now");
+        System.out.println("2. Exit");
     }
 
     public static void main(String[] args) {

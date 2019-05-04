@@ -40,11 +40,10 @@ public class KvStoreMasterClient implements KvClientInterface {
         this.keyLockMap = new ConcurrentHashMap<>();
         this.transactionLoggerMap = new ConcurrentHashMap<>();
         this.dataObject = DOA.getDoa();
+        getFirstTransactionID();
         restore();
     }
 
-
-    //make methods to restore after abort
     void restore() {
         try {
             List transactionLoggerSet = dataObject.getTransactionsNotComplete();
@@ -52,13 +51,7 @@ public class KvStoreMasterClient implements KvClientInterface {
                 System.out.println("Restoring all the Transactions from previous slate");
                 for (Object object : transactionLoggerSet) {
                     TransactionLogger logger = (TransactionLogger) object;
-                    String key = logger.getKey();
-                    TransactionLogger lastLogger = dataObject.getLastValidValue(key);
-                    if (lastLogger.getOperation().equalsIgnoreCase("put")) {
-                        put(key, lastLogger.getValue());
-                    } else {
-                        delete(key);
-                    }
+                    rollBackAbort(logger.getTransactionId());
                 }
             }
         } catch (Exception ex) {
@@ -68,6 +61,7 @@ public class KvStoreMasterClient implements KvClientInterface {
     }
 
     public void startRMIServer() throws RemoteException {
+        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "10");
         KvStoreMasterReplica kvStoreMaster = new KvStoreMasterReplica();
         try {
             Registry registry;
@@ -92,6 +86,13 @@ public class KvStoreMasterClient implements KvClientInterface {
         dataObject.shutdown();
     }
 
+    /**
+     * @param transactionID The transactionID of the transaction we log.
+     * @param state         State of that transaction. Detailed transaction state list available at interface TransactionState
+     * @param key           Can be null
+     * @param value         Can be null
+     * @param operation     Which operation is being performed.there are only 2 right now, put and delete.
+     */
     private void changeTransactionLoggerState(Integer transactionID, Integer state, String key, String value, String operation) {
         Boolean newtransaction = false;
         TransactionLogger transactionLogger = null;
@@ -126,6 +127,11 @@ public class KvStoreMasterClient implements KvClientInterface {
         }
 
         this.dataObject.commit();
+    }
+
+    private void getFirstTransactionID() {
+        currentTransactionID.set(dataObject.getLastTransactionID());
+        currentTransactionID.incrementAndGet();
     }
 
     private Integer getTransactionID() throws InterruptedException {
@@ -225,6 +231,17 @@ public class KvStoreMasterClient implements KvClientInterface {
         }
     }
 
+    void rollBackAbort(Integer transactionId) {
+        String key = transactionLoggerMap.get(transactionId).getKey();
+        TransactionLogger lastLogger = dataObject.getLastValidValue(key);
+        if (lastLogger.getOperation().equalsIgnoreCase("put")) {
+            put(key, lastLogger.getValue());
+        } else {
+            delete(key);
+        }
+
+        changeTransactionLoggerState(transactionId, TransactionState.ROLBACKCOMPLETE, key, null, lastLogger.getOperation());
+    }
 
     @Override
 
@@ -249,11 +266,13 @@ public class KvStoreMasterClient implements KvClientInterface {
                     } else {
                         changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value, "put");
                         sendAbortNotification(transactionID);
+                        rollBackAbort(transactionID);
                         throw new IllegalStateException("Replica Couldn't accept a commit write now");
                     }
                 } catch (Exception e) {
                     this.changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value, "put");
                     sendAbortNotification(transactionID);
+                    rollBackAbort(transactionID);
                     throw new IllegalStateException("Exception occurred at on of the clients.");
                 } finally {
                     lock.unlockWrite(stamp);
@@ -295,11 +314,13 @@ public class KvStoreMasterClient implements KvClientInterface {
                     } else {
                         changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, null, "delete");
                         sendAbortNotification(transactionID);
+                        rollBackAbort(transactionID);
                         throw new IllegalStateException("Replica Couldn't accept a commit write now");
                     }
                 } catch (Exception e) {
                     this.changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, null, "delete");
                     sendAbortNotification(transactionID);
+                    rollBackAbort(transactionID);
                     throw new IllegalStateException("Exception occurred at on of the clients.");
                 } finally {
                     lock.unlockWrite(stamp);
@@ -341,8 +362,3 @@ public class KvStoreMasterClient implements KvClientInterface {
         }
     }
 }
-
-
-//TODO
-//        1.make shutdown better because of exception
-//        2.Make sure I make a table for ALl replicas connected at anygiven time

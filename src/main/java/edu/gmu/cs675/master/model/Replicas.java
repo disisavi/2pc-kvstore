@@ -9,7 +9,7 @@ public class Replicas {
         this.IP = ip;
     }
 
-    Replicas() {
+    public Replicas() {
 
     }
 
