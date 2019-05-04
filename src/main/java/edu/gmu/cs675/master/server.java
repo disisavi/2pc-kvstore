@@ -47,7 +47,7 @@ public class server {
 
         try {
             System.out.println("Starting the RMI server...");
-            KvStoreMasterClient kvStoreMasterClient = new KvStoreMasterClient(this.selfIp);
+            KvStoreMasterClient kvStoreMasterClient = new KvStoreMasterClient();
             this.kvStoreMaster = kvStoreMasterClient;
             Registry registry;
             try {
@@ -63,7 +63,7 @@ public class server {
             System.out.println("ip -- " + selfIp.getHostAddress());
             logger.info("KV Store Complete\nmaster Name -- " + KvClientInterface.name);
             logger.info("ip -- " + selfIp.getHostAddress());
-        } catch (RemoteException e) {
+        } catch (Exception e) {
             System.out.println("KV Store Startup Failure ... Proceeding to shutdown");
             logger.error("KV Store Startup Failure ...");
             shutdown(e);

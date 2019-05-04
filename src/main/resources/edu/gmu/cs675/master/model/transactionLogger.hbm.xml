@@ -4,8 +4,9 @@
 <hibernate-mapping package="edu.gmu.cs675.master.model">
     <class name="TransactionLogger" table="transactionLoggers">
         <id name="transactionId" type="java.lang.Integer"/>
-        <property name="Key" type="string" length="100" not-null="false"/>
+        <property name="key" type="string" length="100" not-null="false"/>
         <property name="Value" type="string" length="100" not-null="false"/>
         <property name="state" type="integer" length="100" not-null="false"/>
+        <property name="operation" type="java.lang.String" length="100" not-null="true"/>
     </class>
 </hibernate-mapping>

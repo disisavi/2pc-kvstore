@@ -8,10 +8,18 @@ import java.util.Objects;
 public class TransactionLogger implements Serializable {
     private static final long serialVersionUID = 7285422351781570L;
     private Integer transactionId;
-    private String Key;
+    private String key;
     private String Value;
     private int state;
+    private String operation;
 
+    public String getOperation() {
+        return operation;
+    }
+
+    public void setOperation(String operation) {
+        this.operation = operation;
+    }
 
 
     public TransactionLogger(Integer transactionId) {
@@ -40,11 +48,11 @@ public class TransactionLogger implements Serializable {
     }
 
     public String getKey() {
-        return Key;
+        return key;
     }
 
     public void setKey(String key) {
-        Key = key;
+        this.key = key;
     }
 
     public Integer getTransactionId() {

@@ -1,8 +1,13 @@
 package edu.gmu.cs675.doa;
 
+import edu.gmu.cs675.master.model.TransactionLogger;
+import edu.gmu.cs675.shared.TransactionState;
 import org.apache.log4j.Logger;
+import org.hibernate.Criteria;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Restrictions;
 
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +52,28 @@ public class DOA {
         Object object = this.session.get(className, key);
         this.commit();
         return object;
+    }
+
+    public List getTransactionsNotComplete() {
+        Criteria criteria = session.createCriteria(TransactionLogger.class);
+        criteria.add(Restrictions.eq("state", TransactionState.ACTIONCHECK));
+        criteria.add(Restrictions.eq("state", TransactionState.COMMIT));
+        List transactionLoggerList = criteria.list();
+        commit();
+        return transactionLoggerList;
+    }
+
+    //add remainder of the criteria and add abort recovery method
+    //and kindly for the love of god, please be consistent with the logger states
+    public TransactionLogger getLastValidValue(String key) {
+        Criteria criteria = session.createCriteria(TransactionLogger.class);
+        criteria.add(Restrictions.eq("key", key));
+        criteria.add(Restrictions.eq("state", TransactionState.ACTIONCHECK));
+        criteria.addOrder(Order.desc("transactionId"));
+        criteria.setMaxResults(1);
+        TransactionLogger logger = (TransactionLogger) criteria.uniqueResult();
+        commit();
+        return logger;
     }
 
     public void updateObject(Object object) {

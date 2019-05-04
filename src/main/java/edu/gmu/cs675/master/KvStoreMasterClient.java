@@ -10,11 +10,11 @@ import edu.gmu.cs675.shared.TransactionState;
 import javassist.NotFoundException;
 import org.apache.log4j.Logger;
 
-import java.net.InetAddress;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -35,19 +35,41 @@ public class KvStoreMasterClient implements KvClientInterface {
     static final AtomicInteger currentTransactionID = new AtomicInteger(-1);
 
 
-    KvStoreMasterClient(InetAddress ip) throws RemoteException {
+    KvStoreMasterClient() throws RemoteException {
         this.startRMIServer();
         this.keyLockMap = new ConcurrentHashMap<>();
         this.transactionLoggerMap = new ConcurrentHashMap<>();
         this.dataObject = DOA.getDoa();
+        restore();
     }
 
 
+    //make methods to restore after abort
+    void restore() {
+        try {
+            List transactionLoggerSet = dataObject.getTransactionsNotComplete();
+            if (transactionLoggerSet.size() > 0) {
+                System.out.println("Restoring all the Transactions from previous slate");
+                for (Object object : transactionLoggerSet) {
+                    TransactionLogger logger = (TransactionLogger) object;
+                    String key = logger.getKey();
+                    TransactionLogger lastLogger = dataObject.getLastValidValue(key);
+                    if (lastLogger.getOperation().equalsIgnoreCase("put")) {
+                        put(key, lastLogger.getValue());
+                    } else {
+                        delete(key);
+                    }
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("stackTrace ", ex);
+            throw ex;
+        }
+    }
+
     public void startRMIServer() throws RemoteException {
         KvStoreMasterReplica kvStoreMaster = new KvStoreMasterReplica();
-
         try {
-
             Registry registry;
             try {
                 registry = LocateRegistry.createRegistry(KvMasterReplicaInterface.port);
@@ -70,7 +92,7 @@ public class KvStoreMasterClient implements KvClientInterface {
         dataObject.shutdown();
     }
 
-    private void changeTransactionLoggerState(Integer transactionID, Integer state, String key, String value) {
+    private void changeTransactionLoggerState(Integer transactionID, Integer state, String key, String value, String operation) {
         Boolean newtransaction = false;
         TransactionLogger transactionLogger = null;
         if (this.transactionLoggerMap.containsKey(transactionID)) {
@@ -79,7 +101,6 @@ public class KvStoreMasterClient implements KvClientInterface {
                 transactionLogger.setKey(key);
                 transactionLogger.setValue(value);
             }
-
         } else {
             newtransaction = true;
             transactionLogger = new TransactionLogger(transactionID);
@@ -87,6 +108,10 @@ public class KvStoreMasterClient implements KvClientInterface {
             transactionLogger.setValue(value);
             transactionLogger.setState(state);
             transactionLoggerMap.put(transactionID, transactionLogger);
+        }
+        if (null != operation) {
+            operation = operation.toUpperCase();
+            transactionLogger.setOperation(operation);
         }
 
         transactionLogger.setState(state);
@@ -129,7 +154,7 @@ public class KvStoreMasterClient implements KvClientInterface {
 
 
     Boolean pollAllReplicas(Integer transactionId, String key, String value) throws TimeoutException {
-        this.changeTransactionLoggerState(transactionId, TransactionState.POLL, key, value);
+        this.changeTransactionLoggerState(transactionId, TransactionState.POLL, key, value, null);
         System.out.println("\tPolling all replicas");
         try {
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
@@ -148,17 +173,16 @@ public class KvStoreMasterClient implements KvClientInterface {
 
     void putAndConfirmCommit(Integer transactionID, String key, String value) throws NotFoundException, RemoteException {
         System.out.println("\tPutting the values in each replica");
-        this.changeTransactionLoggerState(transactionID, TransactionState.ACTIONCHECK, key, value);
+        this.changeTransactionLoggerState(transactionID, TransactionState.ACTIONCHECK, key, value, null);
         try {
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
                 entry.getValue().put(transactionID, key, value);
             }
-            this.changeTransactionLoggerState(transactionID, TransactionState.COMMIT, key, value);
+            this.changeTransactionLoggerState(transactionID, TransactionState.COMMIT, key, value, null);
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
                 entry.getValue().commit(transactionID);
-
-
             }
+            changeTransactionLoggerState(transactionID, TransactionState.COMPLETE, key, value, null);
         } catch (RemoteException | NotFoundException e) {
             logger.error("stacktrace -- Polling ", e);
             System.out.println("\tPutting failed");
@@ -168,18 +192,18 @@ public class KvStoreMasterClient implements KvClientInterface {
     }
 
 
-    void deleteAndConfirmCommit(Integer transactionID, String key, String value) throws NotFoundException, RemoteException {
-        this.changeTransactionLoggerState(transactionID, TransactionState.ACTIONCHECK, key, value);
+    void deleteAndConfirmCommit(Integer transactionID, String key) throws NotFoundException, RemoteException {
+        this.changeTransactionLoggerState(transactionID, TransactionState.ACTIONCHECK, key, null, null);
         try {
             System.out.println("\tdeleting the values in each replica");
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
                 entry.getValue().delete(transactionID, key);
             }
-            this.changeTransactionLoggerState(transactionID, TransactionState.COMMIT, key, value);
+            this.changeTransactionLoggerState(transactionID, TransactionState.COMMIT, key, null, null);
             for (Map.Entry<String, KvReplicaInterface> entry : KvStoreMasterReplica.replicaInterfaceMap.entrySet()) {
                 entry.getValue().commit(transactionID);
-
             }
+            changeTransactionLoggerState(transactionID, TransactionState.COMPLETE, key, null, null);
         } catch (RemoteException | NotFoundException e) {
             logger.error("stacktrace -- Polling ", e);
             System.out.println("\tDeletion Failed");
@@ -204,11 +228,11 @@ public class KvStoreMasterClient implements KvClientInterface {
 
     @Override
 
-    public void put(String key, String value) throws RemoteException, TimeoutException, IllegalStateException {
+    public void put(String key, String value) throws IllegalStateException {
         System.out.println("Put requested for key :" + key);
         try {
             Integer transactionID = getTransactionID();
-            changeTransactionLoggerState(transactionID, TransactionState.START, key, value);
+            changeTransactionLoggerState(transactionID, TransactionState.START, key, value, "put");
             StampedLock lock;
             if (this.keyLockMap.containsKey(key)) {
                 lock = this.keyLockMap.get(key);
@@ -223,12 +247,12 @@ public class KvStoreMasterClient implements KvClientInterface {
                     if (pollAllReplicas(transactionID, key, value)) {
                         putAndConfirmCommit(transactionID, key, value);
                     } else {
-                        changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value);
+                        changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value, "put");
                         sendAbortNotification(transactionID);
                         throw new IllegalStateException("Replica Couldn't accept a commit write now");
                     }
                 } catch (Exception e) {
-                    this.changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value);
+                    this.changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, value, "put");
                     sendAbortNotification(transactionID);
                     throw new IllegalStateException("Exception occurred at on of the clients.");
                 } finally {
@@ -238,7 +262,8 @@ public class KvStoreMasterClient implements KvClientInterface {
                 throw new IllegalStateException("Write Lock Not acquired");
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error("StackTrace -", e);
+            throw new IllegalStateException("Couldn't put right now");
         } finally {
             synchronized (ongoingTransactions) {
                 if (ongoingTransactions.decrementAndGet() == 0) {
@@ -249,8 +274,49 @@ public class KvStoreMasterClient implements KvClientInterface {
     }
 
     @Override
-    public void delete(String key) throws RemoteException, TimeoutException {
+    public void delete(String key) throws IllegalStateException {
+        System.out.println("Delete requested for key :" + key);
+        try {
+            Integer transactionID = getTransactionID();
+            changeTransactionLoggerState(transactionID, TransactionState.START, key, null, "delete");
+            StampedLock lock;
+            if (this.keyLockMap.containsKey(key)) {
+                lock = this.keyLockMap.get(key);
+            } else {
+                lock = new StampedLock();
+                this.keyLockMap.put(key, lock);
 
+            }
+            long stamp = lock.tryWriteLock();
+            if (stamp != 0) {
+                try {
+                    if (pollAllReplicas(transactionID, key, null)) {
+                        deleteAndConfirmCommit(transactionID, key);
+                    } else {
+                        changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, null, "delete");
+                        sendAbortNotification(transactionID);
+                        throw new IllegalStateException("Replica Couldn't accept a commit write now");
+                    }
+                } catch (Exception e) {
+                    this.changeTransactionLoggerState(transactionID, TransactionState.ABORT, key, null, "delete");
+                    sendAbortNotification(transactionID);
+                    throw new IllegalStateException("Exception occurred at on of the clients.");
+                } finally {
+                    lock.unlockWrite(stamp);
+                }
+            } else {
+                throw new IllegalStateException("Write Lock Not acquired");
+            }
+        } catch (InterruptedException e) {
+            logger.error("StackTrace -", e);
+            throw new IllegalStateException("Couldn't delete right now");
+        } finally {
+            synchronized (ongoingTransactions) {
+                if (ongoingTransactions.decrementAndGet() == 0) {
+                    ongoingTransactions.notify();
+                }
+            }
+        }
     }
 
     @Override

@@ -7,13 +7,18 @@ import edu.gmu.cs675.shared.KvMasterReplicaInterface;
 import edu.gmu.cs675.shared.KvReplicaInterface;
 import org.apache.log4j.Logger;
 
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
+import java.rmi.registry.Registry;
 import java.rmi.server.RemoteServer;
 import java.rmi.server.ServerNotActiveException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import static java.rmi.registry.LocateRegistry.getRegistry;
 
 
 class KvStoreMasterReplica implements KvMasterReplicaInterface {
@@ -29,8 +34,31 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
         replicaInterfaceMap = new ConcurrentHashMap<>();
         replicasMap = new ConcurrentHashMap<>();
         logger.info("Master initialisation Successful");
+        startup();
     }
 
+
+    void startup() {
+        Set<Object> objectSet = dataObject.getAll(Replicas.class);
+        for (Object object : objectSet) {
+            Replicas replicas = (Replicas) object;
+            try {
+                replicaInterfaceMap.put(replicas.getIP(), getStub(replicas.getIP()));
+                replicasMap.put(replicas.getIP(), replicas);
+            } catch (Exception ex) {
+                logger.error("Unable to contact " + replicas.getIP(), ex);
+                System.out.println("Unable to contact " + replicas.getIP());
+                dataObject.removeObject(replicas);
+                replicaInterfaceMap.remove(replicas.getIP());
+                replicasMap.remove(replicas.getIP());
+            }
+        }
+    }
+
+    KvReplicaInterface getStub(String host) throws RemoteException, NotBoundException {
+        Registry gameRegistry = getRegistry(host, KvReplicaInterface.port);
+        return (KvReplicaInterface) gameRegistry.lookup(KvReplicaInterface.hostname);
+    }
 
     void shutdown() {
         this.dataObject.shutdown();
