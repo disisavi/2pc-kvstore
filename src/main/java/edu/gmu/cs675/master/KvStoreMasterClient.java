@@ -130,8 +130,11 @@ public class KvStoreMasterClient implements KvClientInterface {
     }
 
     private void getFirstTransactionID() {
-        currentTransactionID.set(dataObject.getLastTransactionID());
-        currentTransactionID.incrementAndGet();
+        Integer transactionId = dataObject.getLastTransactionID();
+        if (null != transactionId) {
+            currentTransactionID.set(transactionId);
+            currentTransactionID.incrementAndGet();
+        }
     }
 
     private Integer getTransactionID() throws InterruptedException {
