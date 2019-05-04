@@ -114,6 +114,7 @@ public class ReplicaServer {
             try {
                 switch (command[0].toUpperCase()) {
                     case "EXIT":
+                        this.replica.shutdown();
                         this.shutdown(new Exception("Server Requested Shutdown"));
                         break;
 

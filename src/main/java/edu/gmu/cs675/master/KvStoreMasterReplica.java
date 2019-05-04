@@ -39,7 +39,6 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
 
 
     void startup() {
-        System.out.println(System.getProperty("sun.rmi.transport.tcp.responseTimeout"));
         Set<Object> objectSet = dataObject.getAll(Replicas.class);
         for (Object object : objectSet) {
             Replicas replicas = (Replicas) object;
@@ -66,7 +65,7 @@ class KvStoreMasterReplica implements KvMasterReplicaInterface {
     }
 
     @Override
-    public HashMap<String, String>  registerReplica(KvReplicaInterface kvClient) throws IllegalArgumentException, RemoteException {
+    public HashMap<String, String> registerReplica(KvReplicaInterface kvClient) throws IllegalArgumentException, RemoteException {
         try {
             synchronized (KvStoreMasterClient.ongoingTransactions) {
                 if (KvStoreMasterClient.ongoingTransactions.get() > 0) {

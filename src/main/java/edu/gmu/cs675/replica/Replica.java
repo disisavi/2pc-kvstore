@@ -43,7 +43,7 @@ public class Replica implements KvReplicaInterface {
      * We will, at this point, get the stream of most uptodate keys and values from the Server and persist those values.
      */
     void replicaStartup() throws RemoteException {
-
+        System.setProperty("sun.rmi.transport.tcp.responseTimeout", "2000");
         Set<Object> keyValuePersistenceSet = dataObject.getAll(KeyValuePersistence.class);
         if (keyValuePersistenceSet.size() != 0) {
             for (Object object : keyValuePersistenceSet) {
@@ -79,6 +79,7 @@ public class Replica implements KvReplicaInterface {
                 KvClass kvClass = new KvClass(entry.getKey());
                 kvClass.keyValuePersistence = keyValuePersistence;
                 dataObject.persistNewObject(keyValuePersistence);
+                keyValueMap.put(keyValuePersistence.getKey(), kvClass);
             }
             dataObject.commit();
         }
@@ -143,7 +144,8 @@ public class Replica implements KvReplicaInterface {
     }
 
 
-    void shutdown() {
+    void shutdown() throws RemoteException {
+        this.masterList.get(0).deRegisterReplica();
         this.dataObject.shutdown();
     }
 
@@ -172,7 +174,7 @@ public class Replica implements KvReplicaInterface {
     }
 
     /**
-     * @return HashMap<String, String> --> returns all the key value pairs in the replica.
+     * @return HashMap<String       ,               String> --> returns all the key value pairs in the replica.
      * @throws RemoteException
      */
     @Override
